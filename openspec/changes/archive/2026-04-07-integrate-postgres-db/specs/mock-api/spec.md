@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Dashboard endpoint
 El sistema SHALL exponer `GET /api/v1/dashboard` que retorna alertas prioritarias, resumen de cursos del docente y actividad reciente. Los datos DEBEN provenir de consultas reales a PostgreSQL filtradas por el `teacher_id` del JWT, no de fixtures estáticos.

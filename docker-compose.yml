@@ -15,5 +15,29 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ceibal}:${POSTGRES_PASSWORD:-ceibal_dev_pass}@postgres:5432/ceibal_dev
+      JWT_SECRET: ${JWT_SECRET}
+      ENV: ${ENV:-development}
+      CORS_ORIGINS: "http://localhost,http://localhost:80"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./apps/web
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
