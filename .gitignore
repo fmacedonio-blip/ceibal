@@ -20,4 +20,4 @@ apps/web/dist/
 .DS_Store
 *.log
 
-feedback_engine_api/*
+feedback_engine_api
