@@ -1,0 +1,21 @@
+# Environment
+.env
+.env.local
+
+# Python
+apps/api/.venv/
+apps/api/__pycache__/
+apps/api/**/__pycache__/
+apps/api/**/*.pyc
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+apps/web/node_modules/
+apps/web/dist/
+
+# OS
+.DS_Store
+*.log

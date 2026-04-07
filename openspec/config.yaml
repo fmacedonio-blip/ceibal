@@ -1,20 +1,73 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  ## Proyecto: Copiloto Pedagógico — Centro Ceibal 2026
+  Asistente multimodal de IA para la enseñanza personalizada de lectoescritura.
+  Dirigido a estudiantes de 3° a 6° (8-12 años) en Uruguay.
+  Principio rector: IA socrática — guía con preguntas, nunca da respuestas directas.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ## Stack
+  - Frontend: React + TypeScript + Vite (monorepo: /apps/web)
+  - Backend: FastAPI + Python (monorepo: /apps/api)
+  - Base de datos principal: PostgreSQL + SQLAlchemy + Alembic
+  - Grafo de conocimiento: Neo4j (AI layer, fase posterior)
+  - Storage: S3/MinIO (audio, imágenes de manuscritos)
+  - Auth producción: CAS (Central Authentication Service de Ceibal) + JWT
+  - Auth desarrollo: POST /auth/dev-login → JWT real con claims de rol
+  - Comunicación AI layer: gRPC (fase posterior)
+  - Estructura: Monorepo
+
+  ## Roles de usuario
+  - docente: vista principal del MVP, gestiona cursos y alumnos
+  - alumno: vista del estudiante (fase posterior al MVP)
+  - director: agregados por escuela (fase posterior)
+  - inspector: agregados por distrito (fase posterior)
+
+  ## MVP — Pantallas diseñadas (vista docente)
+  1. Login — botón SSO Ceibal (dev: selector de rol + botón)
+  2. Inicio/Dashboard — alertas prioritarias, resumen de cursos, actividad reciente
+  3. Mis Cursos — grid de cursos con correcciones pendientes
+  4. Lista de Alumnos — tabla filtrable por estado, búsqueda, paginación
+  5. Detalle Alumno — stats, diagnóstico IA, historial de actividades
+
+  ## Endpoints del MVP (todos protegidos con JWT Bearer excepto /auth/*)
+  - POST /auth/dev-login → { access_token, user: { id, name, role } }
+  - GET  /api/v1/dashboard → alertas, cursos resumen, actividad reciente
+  - GET  /api/v1/courses → lista de cursos del docente
+  - GET  /api/v1/courses/{id}/students → alumnos con filtros y paginación
+  - GET  /api/v1/students/{id} → detalle con diagnóstico IA e historial
+
+  ## Convenciones
+  - Commits: conventional commits (feat, fix, chore, docs)
+  - API: REST con versionado /api/v1/
+  - Idioma del código: inglés (variables, funciones, comentarios)
+  - Idioma de UI: español rioplatense (labels, mensajes, copy)
+  - Rutas frontend: /login, /dashboard, /courses, /courses/:id/students, /students/:id
+  - JWT claims: { sub, role, name, iat, exp }
+  - Estados de actividad: COMPLETADA, PENDIENTE_DE_REVISION, REVISADA, NO_ENTREGADO
+  - Colores de estado por promedio: verde ≥8, amarillo ≥6, rojo <6
+
+  ## Dominio clave
+  - Curso: grupo escolar con grado (1ro-6to), división (A/B/C), turno (matutino/vespertino)
+  - Alumno: pertenece a un curso, tiene promedio, tareas resueltas, diagnóstico IA
+  - Actividad: tarea asignada a un alumno (escritura manuscrita o lectura en voz alta)
+  - Diagnóstico IA: texto generado + tags (ej: "Creatividad Alta", "Mejorar Ortografía")
+  - Alerta: notificación para el docente sobre dificultades de alumnos o tareas pendientes
+
+  ## Figma
+  - Archivo abierto en Figma Desktop con MCP en http://127.0.0.1:3845/mcp
+  - Node IDs de pantallas: Login 1:2, Dashboard 1:41, Mis Cursos 1:237,
+    Lista Alumnos 1:411, Detalle Alumno 1:677
+
+rules:
+  proposal:
+    - Incluir siempre una sección "Non-goals" explícita
+    - Referenciar los node IDs de Figma cuando aplique
+    - Separar claramente lo que es MVP de lo que es fase posterior
+  tasks:
+    - Cada tarea debe poder completarse en una sesión de trabajo
+    - Ordenar por dependencias: primero infraestructura, luego features
+    - Separar tareas de backend y frontend explícitamente
+  design:
+    - Siempre documentar la forma exacta del JWT y los endpoints mockeados
+    - Incluir ejemplos de response JSON para cada endpoint
