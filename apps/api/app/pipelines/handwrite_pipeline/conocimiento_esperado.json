@@ -1,0 +1,218 @@
+{
+  "metadata": {
+    "version": "2.0-curricular",
+    "source": "contenidos.md",
+    "descripcion": "Fuente de verdad pedagógica organizada por curso y tramo curricular."
+  },
+  "mapeo_curso_a_tramo": {
+    "3": "3_4",
+    "4": "3_4",
+    "5": "5_6",
+    "6": "5_6"
+  },
+  "cursos": {
+    "3": {
+      "label": "3°",
+      "tramo": "3_4"
+    },
+    "4": {
+      "label": "4°",
+      "tramo": "3_4"
+    },
+    "5": {
+      "label": "5°",
+      "tramo": "5_6"
+    },
+    "6": {
+      "label": "6°",
+      "tramo": "5_6"
+    }
+  },
+  "tramos": {
+    "3_4": {
+      "label": "3° y 4°",
+      "habilidades_esperadas": [
+        "Correspondencia fonema-grafema y uso convencional de B/V, C/S/Z, G/J y H.",
+        "Uso de mayúsculas y acentuación inicial con reconocimiento de sílaba tónica.",
+        "Concordancia de género y número en estructuras simples.",
+        "Reconocimiento y producción de oraciones simples con sujeto y predicado.",
+        "Narración con inicio, nudo y desenlace, y secuencia lógica de ideas."
+      ],
+      "errores_tolerables": [
+        "Acentuación todavía inestable en palabras no frecuentes.",
+        "Uso parcial o inconsistente del punto y coma en enumeraciones.",
+        "Vocabulario poco específico o repetitivo cuando la idea general se sostiene.",
+        "Dificultades iniciales para identificar o sostener sujeto y predicado en oraciones simples."
+      ],
+      "focos_docentes": [
+        "Sistema de escritura",
+        "Concordancia básica",
+        "Estructura narrativa elemental",
+        "Precisión léxica"
+      ],
+      "ejes": {
+        "sistema_lengua": {
+          "nombre": "Sistema de la Lengua",
+          "subareas": {
+            "ortografia": [
+              "Correspondencia fonema-grafema",
+              "Uso convencional de B/V",
+              "Uso convencional de C/S/Z",
+              "Uso convencional de G/J",
+              "Uso de H",
+              "Uso de mayúsculas",
+              "Acentuación inicial",
+              "Uso de punto y coma en enumeraciones"
+            ],
+            "morfologia": [
+              "Familia de palabras",
+              "Derivación con prefijos y sufijos",
+              "Relación entre palabras de la misma raíz"
+            ],
+            "categorias_gramaticales": [
+              "Sustantivos comunes y propios",
+              "Adjetivos calificativos",
+              "Verbos como núcleo de acción"
+            ],
+            "concordancia": [
+              "Género",
+              "Número"
+            ],
+            "sintaxis": [
+              "Oración simple",
+              "Identificación de sujeto",
+              "Identificación de predicado"
+            ]
+          }
+        },
+        "textual_discursivo": {
+          "nombre": "Nivel Textual y Discursivo",
+          "subareas": {
+            "narrativa": [
+              "Inicio",
+              "Nudo",
+              "Desenlace"
+            ],
+            "elementos_narrativos": [
+              "Personajes",
+              "Espacio",
+              "Tiempo"
+            ],
+            "coherencia": [
+              "Orden lógico de ideas",
+              "Secuencia narrativa"
+            ]
+          }
+        },
+        "lexico_semantica": {
+          "nombre": "Léxico y Semántica",
+          "subareas": {
+            "precision_lexica": [
+              "Elección más adecuada de palabras"
+            ],
+            "ampliacion_vocabulario": [
+              "Uso de palabras más específicas"
+            ],
+            "relaciones_semanticas": [
+              "Sinonimia más precisa",
+              "Campos semánticos"
+            ]
+          }
+        }
+      }
+    },
+    "5_6": {
+      "label": "5° y 6°",
+      "habilidades_esperadas": [
+        "Uso más estable de reglas de acentuación en agudas, graves y esdrújulas.",
+        "Puntuación más precisa y consolidación de reglas ortográficas frecuentes.",
+        "Uso correcto de tiempos verbales y concordancia verbal en textos.",
+        "Producción de textos más desarrollados, coherentes y cohesionados.",
+        "Revisión del texto con mayor conciencia léxica y temática."
+      ],
+      "errores_tolerables": [
+        "Dificultades ocasionales con puntuación avanzada o estructuras sintácticas más complejas.",
+        "Uso todavía limitado de sinónimos y pronombres para cohesión elaborada.",
+        "Problemas leves de progresión temática cuando el texto intenta mayor complejidad."
+      ],
+      "focos_docentes": [
+        "Ortografía profundizada",
+        "Sistema verbal y concordancia verbal",
+        "Cohesión y progresión temática",
+        "Revisión y enriquecimiento léxico"
+      ],
+      "ejes": {
+        "sistema_lengua": {
+          "nombre": "Sistema de la Lengua",
+          "subareas": {
+            "ortografia": [
+              "Acentuación de agudas",
+              "Acentuación de graves",
+              "Acentuación de esdrújulas",
+              "Uso más preciso de puntuación",
+              "Consolidación de B/V",
+              "Consolidación de C/S/Z"
+            ],
+            "morfologia": [
+              "Derivación y composición",
+              "Reconocimiento de prefijos y sufijos",
+              "Formación de palabras abstractas"
+            ],
+            "categorias_gramaticales": [
+              "Clasificación ampliada de sustantivos",
+              "Función más clara de adjetivos",
+              "Mayor conciencia del uso verbal"
+            ],
+            "sistema_verbal": [
+              "Uso correcto de tiempos verbales",
+              "Concordancia verbal",
+              "Relación entre tiempos en un texto"
+            ],
+            "sintaxis": [
+              "Oraciones complejas",
+              "Mayor identificación de sujeto y predicado",
+              "Expansión del predicado"
+            ]
+          }
+        },
+        "textual_discursivo": {
+          "nombre": "Nivel Textual y Discursivo",
+          "subareas": {
+            "produccion_textual": [
+              "Narración más desarrollada",
+              "Organización más clara"
+            ],
+            "coherencia": [
+              "Mantener el tema principal",
+              "Evitar u ordenar contradicciones",
+              "Respetar la creatividad"
+            ],
+            "cohesion": [
+              "Uso de conectores variados",
+              "Uso de pronombres"
+            ],
+            "progresion_tematica": [
+              "Avance de la información en el texto"
+            ],
+            "revision": [
+              "Revisión del texto"
+            ]
+          }
+        },
+        "lexico_semantica": {
+          "nombre": "Léxico y Semántica",
+          "subareas": {
+            "ampliacion_vocabulario": [
+              "Sustitución de palabras repetidas",
+              "Introducción de sinónimos"
+            ],
+            "relaciones_semanticas": [
+              "Sinonimia",
+              "Antonimia"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
