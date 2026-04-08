@@ -391,6 +391,7 @@ async def get_correction(
                 "feedback": ai.get("bloque_alumno", ""),
                 "errores": errores_alumno,
                 "consejos": ai.get("consejos_para_mejorar", []),
+                "alertas_fluidez": ai.get("alertas_fluidez", []),
             },
             docente={
                 "feedback_tecnico": ai.get("bloque_docente", ""),

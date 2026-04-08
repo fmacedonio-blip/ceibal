@@ -75,6 +75,7 @@ export interface AudioCorrectionAlumno {
   feedback: string;
   errores: AudioCorrectionErrorAlumno[];
   consejos: string[];
+  alertas_fluidez?: string[];
 }
 
 export interface AudioCorrectionDocente {

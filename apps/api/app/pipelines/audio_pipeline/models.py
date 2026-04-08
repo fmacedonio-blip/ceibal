@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class ErrorLecturaOral(BaseModel):
     palabra_original: str
     lo_que_leyo: Optional[str] = None  # None para omisiones
-    tipo: str  # sustitucion | omision | repeticion | autocorreccion
+    tipo: str  # sustitucion | pronunciacion | omision | repeticion | autocorreccion
     dudoso: bool = False
     explicacion_alumno: str = ""   # tono accesible para 8-12 años
     explicacion_docente: str = ""  # tono técnico pedagógico
