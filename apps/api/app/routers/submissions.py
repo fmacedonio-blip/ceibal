@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date
 
@@ -17,6 +18,19 @@ from app.services import submission_service
 from app.services.audio_analyze import AudioAnalyzeError
 from app.services.audio_analyze import analyze as audio_analyze
 from app.services.handwrite_analyze import HandwriteAnalyzeError
+
+
+def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
+    if not transcripcion or not errores:
+        return transcripcion
+    sorted_errors = sorted(errores, key=lambda e: len(e.text), reverse=True)
+    result = transcripcion
+    for error in sorted_errors:
+        word = re.escape(error.text)
+        msg = (error.correccion_alumno or error.explicacion_pedagogica).replace('"', "&quot;")
+        tag = f'<error msg="{msg}">{error.text}</error>'
+        result = re.sub(rf'\b{word}\b', tag, result, flags=re.IGNORECASE)
+    return result
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 
@@ -59,13 +73,13 @@ async def analyze_submission(
         output=output,
     )
 
+    transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
+    output = output.model_copy(update={"transcripcion_html": transcripcion_html})
+
     return SubmissionAnalyzeResponse(
         submission_id=submission.id,
         status=submission.status,
-        feedback_inicial=output.feedback_inicial,
-        sugerencias_socraticas=output.sugerencias_socraticas,
-        total_errors=submission.total_errors or 0,
-        requires_review=submission.requires_review,
+        **output.model_dump(),
     )
 
 

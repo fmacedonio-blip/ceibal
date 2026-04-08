@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import audio_analyze, auth, chat, courses, dashboard, handwrite_analyze, students, submissions
+from app.routers import audio_analyze, auth, chat, courses, dashboard, handwrite_analyze, handwrite_analyze_aws, students, submissions
 
 app = FastAPI(
     title="Ceibal Copiloto Pedagógico API",
@@ -25,5 +25,6 @@ app.include_router(courses.router)
 app.include_router(students.router)
 app.include_router(audio_analyze.router)
 app.include_router(handwrite_analyze.router)
+app.include_router(handwrite_analyze_aws.router)
 app.include_router(submissions.router)
 app.include_router(chat.router)

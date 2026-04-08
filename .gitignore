@@ -21,3 +21,5 @@ apps/web/dist/
 *.log
 
 feedback_engine_api
+apps\api\DATASET
+analisis_prompt_audio
