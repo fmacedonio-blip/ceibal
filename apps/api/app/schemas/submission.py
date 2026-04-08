@@ -99,6 +99,7 @@ class AudioCorrectionAlumno(BaseModel):
     feedback: str
     errores: list[AudioCorrectionErrorAlumno]
     consejos: list[str]
+    alertas_fluidez: list[str] = []
 
 
 class AudioCorrectionDocente(BaseModel):
