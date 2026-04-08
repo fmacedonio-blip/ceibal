@@ -306,9 +306,9 @@ Devuelve la sesión de chat activa más reciente para una submission. Permite al
 
 ## POST /api/v1/submissions/{submission_id}/chat/start
 
-Inicia una sesión de chat para una submission. Si ya existe una sesión activa, la devuelve (idempotente).
+Inicia una sesión de chat para una submission ya procesada. **No re-analiza** — solo busca el resultado guardado en la base de datos por `submission_id`. Si ya existe una sesión activa, la devuelve (idempotente).
 
-> Rol requerido: `alumno`
+> El `submission_id` puede venir de un análisis hecho en cualquier momento anterior — no es necesario re-subir la imagen o el audio.
 
 **Request** — sin body
 
@@ -336,6 +336,51 @@ Inicia una sesión de chat para una submission. Si ya existe una sesión activa,
 | 403 | Solo el rol `alumno` puede iniciar chat / submission pertenece a otro alumno |
 | 404 | Submission no encontrada |
 | 422 | Submission aún no procesada, o falló el procesamiento |
+
+---
+
+## Cómo funciona el chatbot
+
+El chatbot es **socrático**: nunca da la respuesta correcta directamente, siempre guía al alumno con preguntas abiertas.
+
+### Historial y contexto
+
+En cada turno el backend:
+1. Carga todo el historial de mensajes de la sesión desde la DB
+2. Construye un array de mensajes con el historial completo
+3. Lo envía al LLM junto con un system prompt que incluye el resultado del análisis
+
+```
+[system]    contexto del análisis (transcripción, errores, feedback)
+[assistant] primer mensaje de bienvenida/feedback
+[user]      mensaje del alumno
+[assistant] respuesta socrática
+[user]      siguiente mensaje
+...
+```
+
+El modelo no tiene memoria propia — el historial se reconstruye desde la DB en cada llamada.
+
+### System prompt
+
+Se construye dinámicamente según el tipo de submission:
+
+- **Handwrite**: transcripción del texto + errores detectados + feedback inicial
+- **Audio**: texto original + lo que leyó el alumno + palabras por minuto + precisión + errores
+
+### Límites
+
+| Parámetro | Valor |
+|-----------|-------|
+| Turnos máximos por sesión | 20 |
+| Max tokens por respuesta | 256 |
+| Modelo | `claude-sonnet-4-6` vía OpenRouter |
+
+Al llegar a 20 turnos la sesión se cierra (`is_active: false`) y el siguiente mensaje devuelve 422.
+
+### Persistencia
+
+Cada mensaje (rol `user` y `assistant`) se guarda en la DB. El historial completo está disponible en cualquier momento via `GET /api/v1/chat/{session_id}/history`, ordenado por `created_at` ascendente.
 
 ---
 

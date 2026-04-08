@@ -3,18 +3,6 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-_DEV_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-
-
-def _sub_to_uuid(sub: str) -> uuid.UUID | None:
-    if not sub:
-        return None
-    try:
-        return uuid.UUID(sub)
-    except ValueError:
-        return uuid.uuid5(_DEV_NAMESPACE, sub)
-
-from app.auth.dependencies import get_current_user
 from app.database_async import get_async_db
 from app.schemas.submission import (
     AudioSubmissionAnalyzeResponse,
@@ -46,7 +34,6 @@ async def analyze_submission(
     class_id: uuid.UUID = Form(...),
     grade: int = Form(...),
     student_id: uuid.UUID = Form(...),
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> SubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -58,8 +45,6 @@ async def analyze_submission(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
-    teacher_uuid = _sub_to_uuid(current_user.get("sub", ""))
-
     try:
         output = await hw_service.analyze(image_bytes, file.content_type, grade)
     except HandwriteAnalyzeError as exc:
@@ -68,7 +53,7 @@ async def analyze_submission(
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
-        teacher_id=teacher_uuid,
+        teacher_id=None,
         class_id=class_id,
         grade=grade,
         output=output,
@@ -92,7 +77,6 @@ async def analyze_audio_submission(
     grade: int = Form(...),
     texto_original: str = Form(...),
     nombre: str = Form(...),
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -108,14 +92,11 @@ async def analyze_audio_submission(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio file")
 
-    teacher_uuid = _sub_to_uuid(current_user.get("sub", ""))
-
     try:
         output = await audio_analyze(audio_bytes, file.content_type, texto_original, nombre, grade)
     except AudioAnalyzeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # Inject texto_original and nombre into the persisted blob
     ai_result_dict = output.model_dump()
     ai_result_dict["texto_original"] = texto_original
     ai_result_dict["nombre"] = nombre
@@ -123,7 +104,7 @@ async def analyze_audio_submission(
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
-        teacher_id=teacher_uuid,
+        teacher_id=None,
         class_id=class_id,
         grade=grade,
         output=output,
@@ -146,17 +127,13 @@ async def analyze_audio_submission(
 @router.get("/submissions/{submission_id}", response_model=SubmissionDetailResponse, tags=["submissions"])
 async def get_submission(
     submission_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> SubmissionDetailResponse:
-    user_role = current_user.get("role", "")
-    user_uuid = _sub_to_uuid(current_user.get("sub", ""))
-
     submission = await submission_service.get_submission(
         db=db,
         submission_id=submission_id,
-        current_user_id=user_uuid,
-        current_role=user_role,
+        current_user_id=None,
+        current_role="docente",
     )
     return SubmissionDetailResponse.model_validate(submission)
 
@@ -166,12 +143,8 @@ async def classroom_dashboard(
     class_id: uuid.UUID,
     desde: date | None = None,
     hasta: date | None = None,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> list[DashboardStudentRow]:
-    role = current_user.get("role", "")
-    if role not in ("docente", "director", "inspector"):
-        raise HTTPException(status_code=403, detail="Docente or director role required")
     return await submission_service.get_classroom_dashboard(db, class_id, desde, hasta)
 
 
@@ -179,19 +152,14 @@ async def classroom_dashboard(
 async def classroom_error_patterns(
     class_id: uuid.UUID,
     dias: int = 30,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> list[ErrorPattern]:
-    role = current_user.get("role", "")
-    if role not in ("docente", "director", "inspector"):
-        raise HTTPException(status_code=403, detail="Docente or director role required")
     return await submission_service.get_error_patterns(db, class_id, dias)
 
 
 @router.get("/students/{student_id}/progress", response_model=list[ProgressPoint], tags=["submissions"])
 async def student_progress(
     student_id: uuid.UUID,
-    current_user: dict = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> list[ProgressPoint]:
     return await submission_service.get_student_progress(db, student_id)

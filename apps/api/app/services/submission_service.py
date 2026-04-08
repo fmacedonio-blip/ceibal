@@ -129,11 +129,6 @@ async def get_submission(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Submission not found")
 
-    if current_role not in ("docente", "director", "inspector"):
-        if current_user_id is None or submission.student_id != current_user_id:
-            from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail="Access denied")
-
     return submission
 
 

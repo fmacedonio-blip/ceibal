@@ -20,6 +20,7 @@ DEV_USERS = {
 
 class DevLoginRequest(BaseModel):
     role: Literal["docente", "alumno", "director", "inspector"]
+    sub: str | None = None  # override the default dev sub (e.g. pass a real student UUID)
 
 
 class DevLoginResponse(BaseModel):
@@ -34,7 +35,8 @@ def dev_login(body: DevLoginRequest) -> DevLoginResponse:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     user = DEV_USERS[body.role]
-    token = create_token(sub=user["id"], role=body.role, name=user["name"])
+    sub = body.sub or user["id"]
+    token = create_token(sub=sub, role=body.role, name=user["name"])
 
     return DevLoginResponse(
         access_token=token,

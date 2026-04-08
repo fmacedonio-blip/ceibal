@@ -136,7 +136,6 @@ async def _call_openrouter(messages: list[dict[str, str]]) -> tuple[str, int]:
 async def start_session(
     db: AsyncSession,
     submission_id: uuid.UUID,
-    student_id: uuid.UUID,
 ) -> ChatStartResponse:
     # Load submission
     result = await db.execute(select(Submission).where(Submission.id == submission_id))
@@ -147,8 +146,6 @@ async def start_session(
         raise HTTPException(status_code=422, detail="Submission processing failed — cannot start chat")
     if submission.status != "processed":
         raise HTTPException(status_code=422, detail="Submission is not yet processed")
-    if submission.student_id != student_id:
-        raise HTTPException(status_code=403, detail="Access denied")
 
     ai_result = submission.ai_result or {}
     sub_type = getattr(submission, "submission_type", None) or "handwrite"
@@ -200,7 +197,7 @@ async def start_session(
     session = ChatSession(
         id=uuid.uuid4(),
         submission_id=submission_id,
-        student_id=student_id,
+        student_id=submission.student_id,
         started_at=now,
         last_message_at=now,
         turn_count=0,
@@ -234,15 +231,12 @@ async def send_message(
     db: AsyncSession,
     session_id: uuid.UUID,
     content: str,
-    current_student_id: uuid.UUID,
 ) -> ChatMessageResponse:
     # Load session
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session = result.scalar_one_or_none()
     if session is None:
         raise HTTPException(status_code=404, detail="Chat session not found")
-    if session.student_id != current_student_id:
-        raise HTTPException(status_code=403, detail="Access denied")
     if not session.is_active or session.turn_count >= MAX_TURNS:
         session.is_active = False
         await db.commit()
@@ -313,8 +307,6 @@ async def send_message(
 async def get_session_for_submission(
     db: AsyncSession,
     submission_id: uuid.UUID,
-    current_user_id: uuid.UUID,
-    current_role: str,
 ) -> ChatSession:
     result = await db.execute(
         select(ChatSession)
@@ -325,26 +317,17 @@ async def get_session_for_submission(
     session = result.scalar_one_or_none()
     if session is None:
         raise HTTPException(status_code=404, detail="No chat session found for this submission")
-    if current_role not in ("docente", "director", "inspector"):
-        if session.student_id != current_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
     return session
 
 
 async def get_history(
     db: AsyncSession,
     session_id: uuid.UUID,
-    current_user_id: uuid.UUID,
-    current_role: str,
 ) -> ChatHistoryResponse:
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id))
     session = result.scalar_one_or_none()
     if session is None:
         raise HTTPException(status_code=404, detail="Chat session not found")
-
-    if current_role not in ("docente", "director", "inspector"):
-        if session.student_id != current_user_id:
-            raise HTTPException(status_code=403, detail="Access denied")
 
     msgs_result = await db.execute(
         select(ChatMessage)
