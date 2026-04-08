@@ -57,6 +57,7 @@ async def persist_result(
     output: OutputFinal | OutputFinalAudio,
     submission_type: str = "handwrite",
     ai_result_override: dict[str, Any] | None = None,
+    s3_key: str | None = None,
 ) -> Submission:
     if submission_type == "audio":
         metrics = _compute_audio_metrics(output)  # type: ignore[arg-type]
@@ -72,6 +73,7 @@ async def persist_result(
         teacher_id=teacher_id,
         class_id=class_id,
         grade=grade,
+        s3_key=s3_key,
         submitted_at=now,
         processed_at=now,
         status="processed",

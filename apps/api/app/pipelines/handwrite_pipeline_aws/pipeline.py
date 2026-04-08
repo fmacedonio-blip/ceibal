@@ -5,7 +5,7 @@ from app.pipelines.handwrite_pipeline_aws.curriculum import get_curriculum_block
 from app.pipelines.handwrite_pipeline_aws.models import ErrorDetectadoAgrupado, OutputFinal
 from app.pipelines.handwrite_pipeline_aws.session import GatewaySession
 
-DEFAULT_MODEL = "claude-sonnet-4-6"
+DEFAULT_MODEL = "nova-2-pro"
 AMBIGUITY_THRESHOLD = 0.75
 
 

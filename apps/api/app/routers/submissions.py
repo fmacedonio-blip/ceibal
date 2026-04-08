@@ -18,6 +18,10 @@ from app.services import submission_service
 from app.services.audio_analyze import AudioAnalyzeError
 from app.services.audio_analyze import analyze as audio_analyze
 from app.services.handwrite_analyze import HandwriteAnalyzeError
+from app.services.handwrite_analyze_aws import HandwriteAnalyzeAwsError
+from app.services.handwrite_analyze_aws import analyze as aws_analyze
+from app.pipelines.handwrite_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_DEFAULT_MODEL
+from app.pipelines.handwrite_pipeline_aws.s3_client import upload_image
 
 
 def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
@@ -71,6 +75,67 @@ async def analyze_submission(
         class_id=class_id,
         grade=grade,
         output=output,
+    )
+
+    transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
+    output = output.model_copy(update={"transcripcion_html": transcripcion_html})
+
+    return SubmissionAnalyzeResponse(
+        submission_id=submission.id,
+        status=submission.status,
+        **output.model_dump(),
+    )
+
+
+@router.post("/submissions/analyze-aws", response_model=SubmissionAnalyzeResponse, tags=["submissions"])
+async def analyze_submission_aws(
+    file: UploadFile = File(...),
+    class_id: uuid.UUID = Form(...),
+    grade: int = Form(...),
+    student_id: uuid.UUID = Form(...),
+    modelo: str = Form(AWS_DEFAULT_MODEL),
+    db=Depends(get_async_db),
+) -> SubmissionAnalyzeResponse:
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail=f"Unsupported file type: {file.content_type}")
+    if grade not in SUPPORTED_GRADES:
+        raise HTTPException(status_code=400, detail=f"Grade must be one of {sorted(SUPPORTED_GRADES)}")
+
+    image_bytes = await file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Empty file")
+
+    # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
+    try:
+        s3_key, _ = upload_image(image_bytes, file.content_type, filename=file.filename or "image.jpg")
+    except EnvironmentError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    try:
+        output, _session = await aws_analyze(
+            image_bytes=image_bytes,
+            media_type=file.content_type,
+            curso=grade,
+            modelo=modelo,
+            s3_key=s3_key,
+        )
+    except HandwriteAnalyzeAwsError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except EnvironmentError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    submission = await submission_service.persist_result(
+        db=db,
+        student_id=student_id,
+        teacher_id=None,
+        class_id=class_id,
+        grade=grade,
+        output=output,
+        s3_key=s3_key,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
