@@ -23,6 +23,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ENV: ${ENV:-development}
       CORS_ORIGINS: "http://localhost,http://localhost:80"
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     ports:
       - "8000:8000"
     depends_on:
