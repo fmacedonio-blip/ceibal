@@ -6,7 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.pipelines.handwrite_pipeline.models import OutputFinal
 from app.pipelines.handwrite_pipeline_aws.pipeline import DEFAULT_MODEL
-from app.pipelines.handwrite_pipeline_aws.s3_client import upload_image
+from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file as upload_image
 from app.services.handwrite_analyze_aws import HandwriteAnalyzeAwsError, analyze
 
 logger = logging.getLogger(__name__)

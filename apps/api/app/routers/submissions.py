@@ -20,8 +20,11 @@ from app.services.audio_analyze import analyze as audio_analyze
 from app.services.handwrite_analyze import HandwriteAnalyzeError
 from app.services.handwrite_analyze_aws import HandwriteAnalyzeAwsError
 from app.services.handwrite_analyze_aws import analyze as aws_analyze
+from app.services.audio_analyze_aws import AudioAnalyzeAwsError
+from app.services.audio_analyze_aws import analyze as aws_audio_analyze
 from app.pipelines.handwrite_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_DEFAULT_MODEL
-from app.pipelines.handwrite_pipeline_aws.s3_client import upload_image
+from app.pipelines.audio_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_AUDIO_DEFAULT_MODEL
+from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file
 
 
 def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
@@ -107,7 +110,7 @@ async def analyze_submission_aws(
 
     # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
     try:
-        s3_key, _ = upload_image(image_bytes, file.content_type, filename=file.filename or "image.jpg")
+        s3_key, _ = upload_file(image_bytes, file.content_type, filename=file.filename or "image.jpg")
     except EnvironmentError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (RuntimeError, ValueError) as exc:
@@ -189,6 +192,83 @@ async def analyze_audio_submission(
         output=output,
         submission_type="audio",
         ai_result_override=ai_result_dict,
+    )
+
+    return AudioSubmissionAnalyzeResponse(
+        submission_id=submission.id,
+        status=submission.status,
+        bloque_alumno=output.bloque_alumno,
+        nivel_orientativo=output.nivel_orientativo,
+        ppm=output.ppm,
+        precision=output.precision,
+        total_errors=submission.total_errors or 0,
+        requires_review=submission.requires_review,
+    )
+
+
+@router.post("/submissions/analyze-audio-aws", response_model=AudioSubmissionAnalyzeResponse, tags=["submissions"])
+async def analyze_audio_submission_aws(
+    file: UploadFile = File(...),
+    student_id: uuid.UUID = Form(...),
+    class_id: uuid.UUID = Form(...),
+    grade: int = Form(...),
+    texto_original: str = Form(...),
+    nombre: str = Form(...),
+    modelo: str = Form(AWS_AUDIO_DEFAULT_MODEL),
+    db=Depends(get_async_db),
+) -> AudioSubmissionAnalyzeResponse:
+    if file.content_type not in ALLOWED_AUDIO_TYPES:
+        raise HTTPException(status_code=415, detail=f"Unsupported audio type: {file.content_type}")
+    if grade not in SUPPORTED_GRADES:
+        raise HTTPException(status_code=400, detail=f"Grade must be one of {sorted(SUPPORTED_GRADES)}")
+    if not texto_original.strip():
+        raise HTTPException(status_code=400, detail="texto_original cannot be empty")
+    if not nombre.strip():
+        raise HTTPException(status_code=400, detail="nombre cannot be empty")
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="Empty audio file")
+
+    # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
+    try:
+        s3_key, _ = upload_file(audio_bytes, file.content_type, filename=file.filename or "audio.mp3")
+    except EnvironmentError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except (RuntimeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    try:
+        output, _session = await aws_audio_analyze(
+            audio_bytes=audio_bytes,
+            media_type=file.content_type,
+            texto_original=texto_original,
+            nombre=nombre,
+            curso=grade,
+            modelo=modelo,
+            s3_key=s3_key,
+        )
+    except AudioAnalyzeAwsError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except EnvironmentError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    ai_result_dict = output.model_dump()
+    ai_result_dict["texto_original"] = texto_original
+    ai_result_dict["nombre"] = nombre
+
+    submission = await submission_service.persist_result(
+        db=db,
+        student_id=student_id,
+        teacher_id=None,
+        class_id=class_id,
+        grade=grade,
+        output=output,
+        submission_type="audio",
+        ai_result_override=ai_result_dict,
+        s3_key=s3_key,
     )
 
     return AudioSubmissionAnalyzeResponse(

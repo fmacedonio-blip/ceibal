@@ -6,7 +6,11 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_CONTENT_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "audio/mpeg", "audio/mp3", "audio/wav", "audio/wave", "audio/x-wav",
+    "audio/mp4", "audio/m4a", "audio/x-m4a", "audio/ogg", "audio/webm",
+}
 
 
 def get_gateway_file_url() -> str:
@@ -23,13 +27,10 @@ def build_s3_url(key: str) -> str:
     return f"https://{settings.s3_bucket_handwrite}.s3.{settings.aws_region}.amazonaws.com/{key}"
 
 
-def upload_image(image_bytes: bytes, content_type: str, filename: str = "image.jpg") -> tuple[str, str | None]:
+def upload_file(file_bytes: bytes, content_type: str, filename: str = "file") -> tuple[str, str | None]:
     """
-    Upload an image to S3 via the gateway-file service.
-    Returns (s3_key, transcription_or_None).
-
-    The gateway-file endpoint accepts a multipart file upload, stores the image
-    in S3, and optionally returns a transcription of the handwritten text.
+    Upload a file (image or audio) to S3 via the gateway-file service.
+    Returns (s3_key, s3_url_or_None).
     """
     if content_type not in ALLOWED_CONTENT_TYPES:
         raise ValueError(
@@ -42,11 +43,11 @@ def upload_image(image_bytes: bytes, content_type: str, filename: str = "image.j
     try:
         response = httpx.post(
             gateway_url,
-            files={"file": (filename, image_bytes, content_type)},
+            files={"file": (filename, file_bytes, content_type)},
             timeout=30.0,
         )
     except httpx.TimeoutException:
-        raise RuntimeError("Timeout uploading image to gateway-file service")
+        raise RuntimeError("Timeout uploading file to gateway-file service")
     except httpx.RequestError as e:
         raise RuntimeError(f"Network error uploading to gateway-file: {e}") from e
 
@@ -57,8 +58,6 @@ def upload_image(image_bytes: bytes, content_type: str, filename: str = "image.j
 
     body = response.json()
 
-    # Response shape: { "record_id": "...", "file_key": "uploads/uuid.png",
-    #                   "s3_url": "s3://bucket/...", "transcription": "...", "transcription_error": null }
     key = body.get("file_key")
     if not key:
         raise RuntimeError(
@@ -69,6 +68,10 @@ def upload_image(image_bytes: bytes, content_type: str, filename: str = "image.j
 
     logger.info(
         "gateway-file upload OK | file_key=%s s3_url=%s size=%d",
-        key, s3_url, len(image_bytes),
+        key, s3_url, len(file_bytes),
     )
     return key, s3_url
+
+
+# Keep backwards-compatible alias
+upload_image = upload_file
