@@ -16,6 +16,17 @@ class SubmissionAnalyzeResponse(BaseModel):
     requires_review: bool
 
 
+class AudioSubmissionAnalyzeResponse(BaseModel):
+    submission_id: uuid.UUID
+    status: str
+    bloque_alumno: str
+    nivel_orientativo: str
+    ppm: float
+    precision: float
+    total_errors: int
+    requires_review: bool
+
+
 class SubmissionDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -33,6 +44,7 @@ class SubmissionDetailResponse(BaseModel):
     concordance_errors: int | None
     ambiguous_count: int | None
     avg_confidence: float | None
+    submission_type: str = "handwrite"
     requires_review: bool
     lectura_insuficiente: bool
     ai_result: dict[str, Any] | None  # deserialized JSONB object, not string

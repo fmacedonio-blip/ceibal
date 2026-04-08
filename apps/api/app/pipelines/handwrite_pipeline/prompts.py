@@ -37,7 +37,7 @@ Tu tarea es:
 - `oracion_incompleta`: oración que carece de sujeto, verbo principal o predicado, o que queda gramaticalmente incompleta
 - `conector_abusado`: un mismo conector (ej: "y", "entonces", "pero") se usa más de 3 veces en el texto, empobreciendo la cohesión
 - `texto_muy_corto`: el texto tiene menos palabras que lo mínimo esperable para el tramo curricular indicado en `habilidades_esperadas`
-- `ortografia_probable`: error ortográfico claro donde la palabra está escrita incorrectamente pero es legible (tilde faltante, letra incorrecta, etc.)
+- `ortografia_probable`: error ortográfico claro donde la palabra está escrita incorrectamente pero es legible (tilde faltante, letra incorrecta, etc.). **Incluí tildes faltantes aunque la palabra sea reconocible**: "dragon" → "dragón", "habia" → "había", "dia" → "día", "encontro" → "encontró". Reportá cada palabra sin tilde que la requiera.
 - `puntuacion_probable`: uso incorrecto o ausencia de signos de puntuación donde corresponde según el nivel esperado
 
 ## Escala de `confianza_lectura`
@@ -60,7 +60,8 @@ Asigná un valor único (entre 0.0 y 1.0) que represente la confianza promedio s
 
 ## Explicaciones
 
-Para cada error o punto de mejora generá:
+Para cada error generá:
+- `correccion_alumno`: frase corta y directa que explica el error y da la forma correcta. No hagas preguntas. No uses mayúscula inicial salvo que sea nombre propio. Formato: explicá brevemente qué tiene mal y cómo es correcto. Ejemplos: `"azul se escribe con z"`, `"había lleva h al principio"`, `"parque se escribe con qu"`, `"viví lleva tilde en la i"`. Máximo 10 palabras.
 - `explicacion_pedagogica`: breve, cálida y adaptada al curso/tramo; no reveles la respuesta exacta.
 - `explicacion_docente`: técnica y directa, aclarando cuando algo requiere revisión por ambigüedad de lectura y, cuando sea relevante, el eje curricular implicado.
 
@@ -75,6 +76,7 @@ Respondé ÚNICAMENTE con un JSON válido con esta estructura exacta:
     {
       "text": "...",
       "error_type": "...",
+      "correccion_alumno": "...",
       "explicacion_pedagogica": "...",
       "explicacion_docente": "...",
       "confianza_lectura": 0.85,
@@ -138,11 +140,14 @@ Tu tarea es producir el output final para el alumno y el docente.
 
 ## 1. Agrupación de errores detectados
 
+Para cada error agrupado incluí `correccion_alumno`: frase corta y directa que explica el error y da la forma correcta. Sin mayúscula inicial salvo nombre propio. Ejemplos: `"azul se escribe con z"`, `"había lleva h al principio"`, `"viví lleva tilde en la i"`. Máximo 10 palabras.
+
 Agrupá todos los errores por `error_type`, independientemente de si aparecen una o varias veces:
 - Si el mismo `error_type` tiene múltiples ocurrencias, agrupalo en un solo objeto con `ocurrencias` igual al número de veces que aparece y un `text` representativo.
 - Si un `error_type` aparece una sola vez, igualmente incluilo con `ocurrencias: 1`.
 - Usá `requiere_revision_docente: true` en el grupo si al menos una ocurrencia fue ambigua.
 - Si `lectura_insuficiente` es true, devolvé `errores_detectados_agrupados` como lista vacía `[]`.
+- **Revisá la transcripción completa en busca de tildes faltantes** que call1 pudo haber omitido. Palabras como "dragon", "dia", "encontro", "vivio", etc. que requieren tilde deben aparecer como `ortografia_probable`. No asumas que call1 las detectó todas.
 
 ## 2. Sugerencias socráticas
 
@@ -175,6 +180,7 @@ Respondé ÚNICAMENTE con un JSON válido con esta estructura exacta:
       "text": "...",
       "error_type": "...",
       "ocurrencias": 1,
+      "correccion_alumno": "...",
       "explicacion_pedagogica": "...",
       "explicacion_docente": "...",
       "confianza_lectura": 0.85,

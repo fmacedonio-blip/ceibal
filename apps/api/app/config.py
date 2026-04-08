@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://ceibal:ceibal_dev_pass@localhost:5432/ceibal_dev"
     cors_origins: str = "http://localhost:5173"
     handwrite_pipeline: str = "openrouter"
+    audio_pipeline: str = "openrouter"
     openrouter_api_key: str = ""
     openrouter_chat_model: str = "anthropic/claude-sonnet-4-6"
 
@@ -32,6 +33,10 @@ class Settings(BaseSettings):
         if self.handwrite_pipeline not in _VALID_PIPELINES:
             raise ValueError(
                 f"HANDWRITE_PIPELINE must be one of {_VALID_PIPELINES}, got '{self.handwrite_pipeline}'"
+            )
+        if self.audio_pipeline not in _VALID_PIPELINES:
+            raise ValueError(
+                f"AUDIO_PIPELINE must be one of {_VALID_PIPELINES}, got '{self.audio_pipeline}'"
             )
 
     @property

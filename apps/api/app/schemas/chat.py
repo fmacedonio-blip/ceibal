@@ -47,3 +47,25 @@ class ChatSessionInfo(BaseModel):
 class ChatHistoryResponse(BaseModel):
     session: ChatSessionInfo
     messages: list[ChatMessageItem]
+
+
+class ChatSessionLookupResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    session_id: uuid.UUID
+    student_id: uuid.UUID
+    turn_count: int
+    is_active: bool
+    started_at: datetime
+    last_message_at: datetime | None
+
+    @classmethod
+    def from_session(cls, session: object) -> "ChatSessionLookupResponse":
+        return cls(
+            session_id=getattr(session, "id"),
+            student_id=getattr(session, "student_id"),
+            turn_count=getattr(session, "turn_count"),
+            is_active=getattr(session, "is_active"),
+            started_at=getattr(session, "started_at"),
+            last_message_at=getattr(session, "last_message_at"),
+        )

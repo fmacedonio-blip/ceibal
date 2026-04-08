@@ -8,6 +8,7 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.submission import Submission, SubmissionError
+from app.pipelines.audio_pipeline.models import OutputFinalAudio
 from app.pipelines.handwrite_pipeline.models import OutputFinal
 from app.schemas.submission import DashboardStudentRow, ErrorPattern, ProgressPoint
 
@@ -34,16 +35,36 @@ def _compute_metrics(output: OutputFinal) -> dict[str, Any]:
     }
 
 
+def _compute_audio_metrics(output: OutputFinalAudio) -> dict[str, Any]:
+    sustitucion_count = sum(1 for e in output.errores if e.tipo == "sustitucion")
+    return {
+        "total_errors": len(output.errores),
+        "spelling_errors": sustitucion_count,
+        "concordance_errors": 0,
+        "ambiguous_count": sum(1 for e in output.errores if e.dudoso),
+        "avg_confidence": round(output.precision / 100, 3) if output.precision is not None else None,
+        "requires_review": output.calidad_audio_baja,
+        "lectura_insuficiente": output.calidad_audio_baja,
+    }
+
+
 async def persist_result(
     db: AsyncSession,
     student_id: uuid.UUID,
     teacher_id: uuid.UUID | None,
     class_id: uuid.UUID | None,
     grade: int | None,
-    output: OutputFinal,
+    output: OutputFinal | OutputFinalAudio,
+    submission_type: str = "handwrite",
+    ai_result_override: dict[str, Any] | None = None,
 ) -> Submission:
-    metrics = _compute_metrics(output)
+    if submission_type == "audio":
+        metrics = _compute_audio_metrics(output)  # type: ignore[arg-type]
+    else:
+        metrics = _compute_metrics(output)  # type: ignore[arg-type]
+
     now = datetime.now(timezone.utc)
+    ai_result = ai_result_override if ai_result_override is not None else output.model_dump()
 
     submission = Submission(
         id=uuid.uuid4(),
@@ -54,31 +75,36 @@ async def persist_result(
         submitted_at=now,
         processed_at=now,
         status="processed",
-        ai_result=output.model_dump(),
+        submission_type=submission_type,
+        ai_result=ai_result,
         **metrics,
     )
 
-    error_rows = [
-        SubmissionError(
-            id=uuid.uuid4(),
-            submission_id=submission.id,
-            student_id=student_id,
-            class_id=class_id,
-            grade=grade,
-            submitted_at=now,
-            error_type=e.error_type,
-            error_text=e.text,
-            ocurrencias=e.ocurrencias,
-            confianza=e.confianza_lectura,
-            es_ambigua=e.es_ambigua,
-            requiere_revision=e.requiere_revision_docente,
-        )
-        for e in output.errores_detectados_agrupados
-    ]
+    # Only handwrite produces normalized submission_errors rows
+    error_rows = []
+    if submission_type == "handwrite":
+        hw_output: OutputFinal = output  # type: ignore[assignment]
+        error_rows = [
+            SubmissionError(
+                id=uuid.uuid4(),
+                submission_id=submission.id,
+                student_id=student_id,
+                class_id=class_id,
+                grade=grade,
+                submitted_at=now,
+                error_type=e.error_type,
+                error_text=e.text,
+                ocurrencias=e.ocurrencias,
+                confianza=e.confianza_lectura,
+                es_ambigua=e.es_ambigua,
+                requiere_revision=e.requiere_revision_docente,
+            )
+            for e in hw_output.errores_detectados_agrupados
+        ]
 
     try:
         db.add(submission)
-        await db.flush()   # INSERT submissions before referencing its id in submission_errors
+        await db.flush()
         if error_rows:
             db.add_all(error_rows)
         await db.commit()

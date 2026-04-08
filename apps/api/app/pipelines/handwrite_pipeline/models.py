@@ -74,6 +74,7 @@ class AmbiguedadLectura(BaseModel):
 class ErrorDetectado(BaseModel):
     text: str
     error_type: str
+    correccion_alumno: str = ""
     explicacion_pedagogica: str
     explicacion_docente: str
     confianza_lectura: float | None = Field(default=None, ge=0.0, le=1.0)
@@ -96,6 +97,7 @@ class ErrorDetectadoAgrupado(ErrorDetectado):
 
 class OutputFinal(BaseModel):
     transcripcion: str = ""
+    transcripcion_html: str = ""
     errores_detectados_agrupados: List[ErrorDetectadoAgrupado]
     puntos_de_mejora: List[PuntoDeMejora]
     ambiguedades_lectura: List[AmbiguedadLectura]

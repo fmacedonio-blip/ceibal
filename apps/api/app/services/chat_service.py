@@ -41,8 +41,55 @@ REGLAS ABSOLUTAS:
 6. Si el alumno da una respuesta correcta, celebrala y avanzá al siguiente error con otra pregunta
 """
 
+AUDIO_SOCRATIC_SYSTEM_PROMPT = """\
+Sos un asistente pedagógico socrático que ayuda a niños de primaria a mejorar su lectura en voz alta.
 
-def _build_system_prompt(ai_result: dict[str, Any]) -> str:
+CONTEXTO DE LA LECTURA DEL ALUMNO:
+Texto que debía leer: {texto_original}
+Lo que se escuchó: {transcripcion}
+Velocidad: {ppm} palabras por minuto
+Precisión: {precision}%
+Nivel orientativo: {nivel_orientativo}
+Errores detectados: {errores_resumidos}
+Feedback dado al alumno: {bloque_alumno}
+
+REGLAS ABSOLUTAS:
+1. NUNCA des la respuesta correcta directamente
+2. SIEMPRE respondé con una pregunta abierta que guíe al alumno a descubrirla
+3. Usá lenguaje simple, cálido y alentador, apropiado para niños de 8-12 años
+4. Referenciá palabras concretas del texto para que la pregunta sea específica
+5. Máximo 2 oraciones por respuesta
+6. Si el alumno mejora su respuesta, celebralo y avanzá al siguiente error con otra pregunta
+"""
+
+
+def _build_audio_system_prompt(ai_result: dict[str, Any]) -> str:
+    texto_original = ai_result.get("texto_original", "")
+    transcripcion = ai_result.get("transcripcion", "")
+    ppm = ai_result.get("ppm", 0)
+    precision = ai_result.get("precision", 0)
+    nivel_orientativo = ai_result.get("nivel_orientativo", "")
+    bloque_alumno = ai_result.get("bloque_alumno", "")
+    errores = ai_result.get("errores", [])
+    errores_resumidos = "; ".join(
+        f"{e.get('tipo', '')}: '{e.get('palabra_original', '')}' → '{e.get('lo_que_leyo', '')}'"
+        for e in errores[:10]
+        if e.get("tipo")
+    )
+    return AUDIO_SOCRATIC_SYSTEM_PROMPT.format(
+        texto_original=texto_original,
+        transcripcion=transcripcion,
+        ppm=ppm,
+        precision=precision,
+        nivel_orientativo=nivel_orientativo,
+        errores_resumidos=errores_resumidos or "sin errores detectados",
+        bloque_alumno=bloque_alumno,
+    )
+
+
+def _build_system_prompt(ai_result: dict[str, Any], submission_type: str = "handwrite") -> str:
+    if submission_type == "audio":
+        return _build_audio_system_prompt(ai_result)
     transcripcion = ai_result.get("transcripcion", "")
     feedback_inicial = ai_result.get("feedback_inicial", "")
     errores = ai_result.get("errores_detectados_agrupados", [])
@@ -91,13 +138,21 @@ async def start_session(
     submission_id: uuid.UUID,
     student_id: uuid.UUID,
 ) -> ChatStartResponse:
-    # Load submission to get feedback_inicial
+    # Load submission
     result = await db.execute(select(Submission).where(Submission.id == submission_id))
     submission = result.scalar_one_or_none()
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.status == "error":
+        raise HTTPException(status_code=422, detail="Submission processing failed — cannot start chat")
     if submission.status != "processed":
         raise HTTPException(status_code=422, detail="Submission is not yet processed")
+    if submission.student_id != student_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    ai_result = submission.ai_result or {}
+    sub_type = getattr(submission, "submission_type", None) or "handwrite"
+    feedback_inicial = ai_result.get("bloque_alumno" if sub_type == "audio" else "feedback_inicial", "")
 
     # Idempotent: return existing active session if any
     existing = await db.execute(
@@ -109,14 +164,31 @@ async def start_session(
     session = existing.scalar_one_or_none()
 
     if session is not None:
-        # Fetch the first message
         first_msg_result = await db.execute(
             select(ChatMessage)
             .where(ChatMessage.session_id == session.id, ChatMessage.role == "assistant")
             .order_by(ChatMessage.created_at)
             .limit(1)
         )
-        first_msg = first_msg_result.scalar_one()
+        first_msg = first_msg_result.scalar_one_or_none()
+
+        # Orphaned session: commit was partial, first message was never saved
+        if first_msg is None:
+            now = datetime.now(timezone.utc)
+            first_msg = ChatMessage(
+                id=uuid.uuid4(),
+                session_id=session.id,
+                role="assistant",
+                content=feedback_inicial,
+                created_at=now,
+            )
+            try:
+                db.add(first_msg)
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                raise
+
         return ChatStartResponse(
             session_id=session.id,
             is_new=False,
@@ -124,10 +196,7 @@ async def start_session(
         )
 
     # Create new session
-    ai_result = submission.ai_result or {}
-    feedback_inicial = ai_result.get("feedback_inicial", "")
     now = datetime.now(timezone.utc)
-
     session = ChatSession(
         id=uuid.uuid4(),
         submission_id=submission_id,
@@ -182,7 +251,8 @@ async def send_message(
     # Load submission for system prompt
     sub_result = await db.execute(select(Submission).where(Submission.id == session.submission_id))
     submission = sub_result.scalar_one()
-    system_prompt = _build_system_prompt(submission.ai_result or {})
+    submission_type = getattr(submission, "submission_type", None) or "handwrite"
+    system_prompt = _build_system_prompt(submission.ai_result or {}, submission_type)
 
     # Load full history
     history_result = await db.execute(
@@ -238,6 +308,27 @@ async def send_message(
         turn_count=new_turn_count,
         is_active=is_active,
     )
+
+
+async def get_session_for_submission(
+    db: AsyncSession,
+    submission_id: uuid.UUID,
+    current_user_id: uuid.UUID,
+    current_role: str,
+) -> ChatSession:
+    result = await db.execute(
+        select(ChatSession)
+        .where(ChatSession.submission_id == submission_id)
+        .order_by(ChatSession.started_at.desc())
+        .limit(1)
+    )
+    session = result.scalar_one_or_none()
+    if session is None:
+        raise HTTPException(status_code=404, detail="No chat session found for this submission")
+    if current_role not in ("docente", "director", "inspector"):
+        if session.student_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+    return session
 
 
 async def get_history(

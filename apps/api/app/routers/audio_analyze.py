@@ -65,7 +65,7 @@ async def audio_analyze(
     logger.info("Audio recibido | tamaño=%d bytes", len(audio_bytes))
 
     try:
-        result = analyze(audio_bytes, audio.content_type, texto_original, nombre, curso, modelo)
+        result = await analyze(audio_bytes, audio.content_type, texto_original, nombre, curso, modelo)
         logger.info(
             "Análisis completado | curso=%d ppm=%.1f nivel=%s errores=%d",
             curso, result.ppm, result.nivel_orientativo, len(result.errores),

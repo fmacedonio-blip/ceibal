@@ -18,6 +18,7 @@ from app.schemas.chat import (
     ChatHistoryResponse,
     ChatMessageRequest,
     ChatMessageResponse,
+    ChatSessionLookupResponse,
     ChatStartResponse,
 )
 from app.services import chat_service
@@ -52,6 +53,18 @@ async def send_message(
 
     student_id = _sub_to_uuid(current_user.get("sub", ""))
     return await chat_service.send_message(db, session_id, body.content, student_id)
+
+
+@router.get("/submissions/{submission_id}/chat-session", response_model=ChatSessionLookupResponse, tags=["chat"])
+async def get_chat_session(
+    submission_id: uuid.UUID,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_async_db),
+) -> ChatSessionLookupResponse:
+    role = current_user.get("role", "")
+    user_id = _sub_to_uuid(current_user.get("sub", ""))
+    session = await chat_service.get_session_for_submission(db, submission_id, user_id, role)
+    return ChatSessionLookupResponse.from_session(session)
 
 
 @router.get("/chat/{session_id}/history", response_model=ChatHistoryResponse, tags=["chat"])

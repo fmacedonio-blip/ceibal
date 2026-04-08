@@ -37,6 +37,7 @@ class Submission(Base):
     requires_review = Column(Boolean, nullable=False, default=False)
     lectura_insuficiente = Column(Boolean, nullable=False, default=False)
     ai_result = Column(JSONB, nullable=True)
+    submission_type = Column(Text, nullable=False, default="handwrite")  # handwrite | audio
 
 
 class SubmissionError(Base):

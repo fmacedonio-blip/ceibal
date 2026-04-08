@@ -1,9 +1,23 @@
 import logging
+import re
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.pipelines.handwrite_pipeline.models import OutputFinal
 from app.services.handwrite_analyze import DEFAULT_MODEL, HandwriteAnalyzeError, analyze
+
+
+def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
+    if not transcripcion or not errores:
+        return transcripcion
+    sorted_errors = sorted(errores, key=lambda e: len(e.text), reverse=True)
+    result = transcripcion
+    for error in sorted_errors:
+        word = re.escape(error.text)
+        msg = (error.correccion_alumno or error.explicacion_pedagogica).replace('"', "&quot;")
+        tag = f'<error msg="{msg}">{error.text}</error>'
+        result = re.sub(rf'\b{word}\b', tag, result, flags=re.IGNORECASE)
+    return result
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +51,8 @@ async def handwrite_analyze(
     try:
         result = await analyze(imagen_bytes, imagen.content_type, curso, modelo)
         logger.info("Análisis completado | curso=%d errores=%d", curso, len(result.errores_detectados_agrupados))
-        return result
+        transcripcion_html = _build_transcripcion_html(result.transcripcion, result.errores_detectados_agrupados)
+        return result.model_copy(update={"transcripcion_html": transcripcion_html})
     except HandwriteAnalyzeError as exc:
         logger.warning("Error de validación: %s", exc)
         raise HTTPException(status_code=400, detail=str(exc)) from exc
