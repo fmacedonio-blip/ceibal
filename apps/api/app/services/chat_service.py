@@ -133,6 +133,62 @@ async def _call_openrouter(messages: list[dict[str, str]]) -> tuple[str, int]:
     return content, tokens_used
 
 
+def _build_chat_opener(ai_result: dict[str, Any], sub_type: str) -> str:
+    """
+    Generate a distinct socratic opening for the chat — NOT a repeat of the correction feedback.
+    References a specific detected error or fluency issue to kick off the conversation.
+    """
+    if sub_type == "audio":
+        errores = ai_result.get("errores", [])
+        alertas = ai_result.get("alertas_fluidez", [])
+
+        if not errores and not alertas:
+            return (
+                "¡Hola! Escuché tu lectura y estuvo muy bien. "
+                "¿Hubo alguna parte donde sentiste que te costó un poquito más?"
+            )
+
+        if "no_respeta_pausas" in alertas:
+            return (
+                "¡Hola! Leíste con mucha energía. "
+                "Fijate en esta parte del texto — ¿qué pasa cuando llegás a un punto? "
+                "¿Hacés una pausa o seguís directo?"
+            )
+
+        if errores:
+            primer_error = errores[0]
+            original = primer_error.get("palabra_original", "")
+            leyo = primer_error.get("lo_que_leyo")
+            if leyo and leyo != original:
+                return (
+                    f"¡Hola! Escuché tu lectura con atención. "
+                    f"Cuando llegaste a la palabra '{original}', ¿cómo crees que la pronunciaste? "
+                    f"¿Igual a como está escrita?"
+                )
+
+        return (
+            "¡Hola! Leíste muy bien. "
+            "¿Hay alguna palabra del texto que te pareció difícil de pronunciar?"
+        )
+
+    else:  # handwrite
+        errores = ai_result.get("errores_detectados_agrupados", [])
+
+        if not errores:
+            return (
+                "¡Hola! Leí tu texto y estuvo muy bien. "
+                "¿Hay alguna parte donde querías escribir algo diferente?"
+            )
+
+        primer_error = errores[0]
+        palabra = primer_error.get("text", "")
+        return (
+            f"¡Hola! Leí lo que escribiste y tengo una pregunta. "
+            f"Fijate en la palabra '{palabra}' — "
+            f"¿cómo creés que se escribe correctamente?"
+        )
+
+
 async def start_session(
     db: AsyncSession,
     submission_id: uuid.UUID,
@@ -149,7 +205,7 @@ async def start_session(
 
     ai_result = submission.ai_result or {}
     sub_type = getattr(submission, "submission_type", None) or "handwrite"
-    feedback_inicial = ai_result.get("bloque_alumno" if sub_type == "audio" else "feedback_inicial", "")
+    feedback_inicial = _build_chat_opener(ai_result, sub_type)
 
     # Idempotent: return existing active session if any
     existing = await db.execute(
@@ -307,17 +363,14 @@ async def send_message(
 async def get_session_for_submission(
     db: AsyncSession,
     submission_id: uuid.UUID,
-) -> ChatSession:
+) -> ChatSession | None:
     result = await db.execute(
         select(ChatSession)
         .where(ChatSession.submission_id == submission_id)
         .order_by(ChatSession.started_at.desc())
         .limit(1)
     )
-    session = result.scalar_one_or_none()
-    if session is None:
-        raise HTTPException(status_code=404, detail="No chat session found for this submission")
-    return session
+    return result.scalar_one_or_none()
 
 
 async def get_history(

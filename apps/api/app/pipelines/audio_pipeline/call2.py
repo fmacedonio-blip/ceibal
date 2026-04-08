@@ -41,6 +41,16 @@ def generar(
 
     nivel = clasificar_nivel(call1_output.ppm, curso)
 
+    # Merge per-error explanations from call2 back into the error objects
+    explicaciones = data.get("errores", [])
+    errores_enriquecidos = []
+    for i, error in enumerate(call1_output.errores):
+        exp = explicaciones[i] if i < len(explicaciones) else {}
+        errores_enriquecidos.append(error.model_copy(update={
+            "explicacion_alumno": exp.get("explicacion_alumno", ""),
+            "explicacion_docente": exp.get("explicacion_docente", ""),
+        }))
+
     try:
         return OutputFinalAudio(
             bloque_alumno=data.get("bloque_alumno", ""),
@@ -49,8 +59,9 @@ def generar(
             ppm=call1_output.ppm,
             precision=call1_output.precision,
             nivel_orientativo=nivel,
-            errores=call1_output.errores,
+            errores=errores_enriquecidos,
             alertas_fluidez=call1_output.alertas_fluidez,
+            consejos_para_mejorar=data.get("consejos_para_mejorar", []),
             calidad_audio_baja=call1_output.calidad_audio_baja,
         )
     except Exception as e:

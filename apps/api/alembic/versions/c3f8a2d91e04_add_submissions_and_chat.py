@@ -5,7 +5,9 @@ Revises: 56056c40e5b1
 Create Date: 2026-04-08 00:00:00.000000
 
 """
+from __future__ import annotations
 from collections.abc import Sequence
+from typing import Union
 
 import sqlalchemy as sa
 from alembic import op
@@ -13,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "c3f8a2d91e04"
-down_revision: str | None = "56056c40e5b1"
+down_revision: Union[str, None] = "56056c40e5b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from sqlalchemy import (
@@ -11,6 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base
@@ -34,6 +36,7 @@ class Course(Base):
     __tablename__ = "courses"
 
     id = Column(Integer, primary_key=True, index=True)
+    course_uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     name = Column(String, nullable=False)   # e.g. "4to A"
     shift = Column(String, nullable=False)  # e.g. "Turno Matutino"
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -46,6 +49,7 @@ class Student(Base):
     __tablename__ = "students"
 
     id = Column(Integer, primary_key=True, index=True)
+    student_uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     name = Column(String, nullable=False)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     average = Column(Float, nullable=False, default=0.0)
@@ -68,6 +72,10 @@ class Activity(Base):
     date = Column(String, nullable=False)
     score = Column(Float, nullable=True)
     status = Column(String, nullable=False)  # COMPLETADA | PENDIENTE_DE_REVISION | REVISADA | NO_ENTREGADO | CORREGIDA
+    description = Column(Text, nullable=True)
+    type = Column(String, nullable=True)  # escritura | lectura
+    subject = Column(String, nullable=False, default="Lengua")
+    reading_text = Column(Text, nullable=True)  # text to read aloud (only for type=lectura)
 
     student = relationship("Student", back_populates="activities")
 

@@ -24,3 +24,12 @@ h1, h2, h3, h4, h5, h6, p {
 button, input, select, textarea {
   font-family: inherit;
 }
+
+/* Handwrite correction: error highlights */
+mark.hw-error {
+  background: #fef08a;
+  color: inherit;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-style: inherit;
+}

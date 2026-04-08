@@ -26,7 +26,13 @@ let initialUser: AuthUser | null = null;
 if (storedToken) {
   try {
     const payload = JSON.parse(atob(storedToken.split(".")[1]));
-    initialUser = { id: payload.sub, name: payload.name, role: payload.role };
+    initialUser = {
+      id: payload.sub,
+      name: payload.name,
+      role: payload.role,
+      ...(payload.student_uuid && { student_uuid: payload.student_uuid }),
+      ...(payload.student_id != null && { student_id: payload.student_id }),
+    };
   } catch {
     localStorage.removeItem(TOKEN_KEY);
   }

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from app.pipelines.handwrite_pipeline.call1 import analizar

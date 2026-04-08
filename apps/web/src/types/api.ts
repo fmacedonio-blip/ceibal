@@ -4,6 +4,8 @@ export interface AuthUser {
   id: string;
   name: string;
   role: UserRole;
+  student_uuid?: string;
+  student_id?: number;
 }
 
 export interface LoginResponse {

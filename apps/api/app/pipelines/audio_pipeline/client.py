@@ -33,6 +33,31 @@ _MIME_TO_FORMAT = {
 }
 
 
+# Formats the Xiaomi/MiMo model accepts
+_MODEL_SUPPORTED_FORMATS = {"mp3", "flac", "m4a", "wav", "ogg"}
+
+
+def normalize_to_supported_format(audio_bytes: bytes, media_type: str) -> tuple[bytes, str]:
+    """
+    If the audio format is not supported by the AI model (e.g. webm),
+    transcode it to WAV using pydub + ffmpeg.
+    Returns (audio_bytes, new_mime_type).
+    """
+    fmt = _MIME_TO_FORMAT.get(media_type, "")
+    if fmt in _MODEL_SUPPORTED_FORMATS:
+        return audio_bytes, media_type
+
+    try:
+        from pydub import AudioSegment
+    except ImportError as e:
+        raise RuntimeError("pydub is not installed. Add it to requirements.txt.") from e
+
+    audio = AudioSegment.from_file(BytesIO(audio_bytes))
+    buf = BytesIO()
+    audio.export(buf, format="mp3", bitrate="128k")
+    return buf.getvalue(), "audio/mpeg"
+
+
 def get_audio_duration_sec(audio_bytes: bytes, media_type: str) -> float:
     """Extracts real audio duration using mutagen. Raises ValueError if it can't be determined."""
     try:

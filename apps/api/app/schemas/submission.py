@@ -50,6 +50,84 @@ class SubmissionDetailResponse(BaseModel):
     ai_result: dict[str, Any] | None  # deserialized JSONB object, not string
 
 
+# ── Correction view schemas ──────────────────────────────────────────────────
+
+class CorrectionErrorAlumno(BaseModel):
+    texto: str
+    correccion: str
+    explicacion: str
+
+
+class CorrectionErrorDocente(BaseModel):
+    texto: str
+    tipo: str
+    explicacion_tecnica: str
+    ocurrencias: int = 1
+    confianza: float | None = None
+
+
+class WritingCorrectionAlumno(BaseModel):
+    feedback: str
+    aspectos_positivos: list[str]
+    transcripcion_html: str
+    errores: list[CorrectionErrorAlumno]
+    sugerencias_socraticas: list[str]
+    consejos: list[str]
+
+
+class WritingCorrectionDocente(BaseModel):
+    razonamiento: str
+    errores: list[CorrectionErrorDocente]
+    puntos_de_mejora: list[dict[str, Any]]
+    requires_review: bool
+
+
+class AudioCorrectionErrorAlumno(BaseModel):
+    palabra_original: str
+    lo_que_leyo: str | None
+    tipo: str
+    explicacion: str
+
+
+class AudioCorrectionErrorDocente(BaseModel):
+    palabra_original: str
+    lo_que_leyo: str | None
+    tipo: str
+    explicacion_tecnica: str
+    dudoso: bool = False
+
+
+class AudioCorrectionAlumno(BaseModel):
+    feedback: str
+    errores: list[AudioCorrectionErrorAlumno]
+    consejos: list[str]
+
+
+class AudioCorrectionDocente(BaseModel):
+    feedback_tecnico: str
+    ppm: float
+    precision: float
+    nivel_orientativo: str
+    errores: list[AudioCorrectionErrorDocente]
+    alertas_fluidez: list[str]
+
+
+class WritingCorrectionResponse(BaseModel):
+    submission_id: uuid.UUID
+    submission_type: str = "handwrite"
+    status: str
+    alumno: WritingCorrectionAlumno
+    docente: WritingCorrectionDocente
+
+
+class AudioCorrectionResponse(BaseModel):
+    submission_id: uuid.UUID
+    submission_type: str = "audio"
+    status: str
+    alumno: AudioCorrectionAlumno
+    docente: AudioCorrectionDocente
+
+
 class DashboardStudentRow(BaseModel):
     student_id: uuid.UUID
     name: str | None

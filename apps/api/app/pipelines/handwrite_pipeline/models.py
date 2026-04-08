@@ -102,6 +102,7 @@ class OutputFinal(BaseModel):
     puntos_de_mejora: List[PuntoDeMejora]
     ambiguedades_lectura: List[AmbiguedadLectura]
     sugerencias_socraticas: List[str]
+    aspectos_positivos: List[str] = []  # bullet list of what the student did well
     feedback_inicial: str
     razonamiento_docente: str
     lectura_insuficiente: bool = False

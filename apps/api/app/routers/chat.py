@@ -32,13 +32,21 @@ async def send_message(
     return await chat_service.send_message(db, session_id, body.content)
 
 
-@router.get("/submissions/{submission_id}/chat-session", response_model=ChatSessionLookupResponse, tags=["chat"])
+@router.get("/submissions/{submission_id}/chat-session", tags=["chat"])
 async def get_chat_session(
     submission_id: uuid.UUID,
     db=Depends(get_async_db),
-) -> ChatSessionLookupResponse:
+) -> dict:
+    """Returns the active chat session for a submission, or {exists: false} if none."""
     session = await chat_service.get_session_for_submission(db, submission_id)
-    return ChatSessionLookupResponse.from_session(session)
+    if session is None:
+        return {"exists": False, "session_id": None}
+    return {
+        "exists": True,
+        "session_id": str(session.id),
+        "turn_count": session.turn_count,
+        "is_active": session.is_active,
+    }
 
 
 @router.get("/chat/{session_id}/history", response_model=ChatHistoryResponse, tags=["chat"])

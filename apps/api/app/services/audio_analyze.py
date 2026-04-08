@@ -1,12 +1,13 @@
 import asyncio
 import logging
+from typing import Optional
 
 from app.config import settings
 from app.pipelines.audio_pipeline.models import OutputFinalAudio
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "xiaomi/mimo-v2-omni"
+DEFAULT_MODEL = "google/gemini-3.1-flash-lite-preview"
 
 
 class AudioAnalyzeError(Exception):
@@ -20,6 +21,7 @@ def _run_sync_pipeline(
     nombre: str,
     curso: int,
     model: str,
+    duracion_seg: Optional[float] = None,
 ) -> OutputFinalAudio:
     if settings.audio_pipeline == "aws":
         raise NotImplementedError("audio_pipeline_aws is not yet implemented")
@@ -32,6 +34,7 @@ def _run_sync_pipeline(
         nombre=nombre,
         curso=curso,
         model=model,
+        duracion_seg=duracion_seg,
     )
 
 
@@ -42,6 +45,7 @@ async def analyze(
     nombre: str,
     curso: int,
     model: str = DEFAULT_MODEL,
+    duracion_seg: Optional[float] = None,
 ) -> OutputFinalAudio:
     """Async wrapper around the audio pipeline. Pipeline implementation
     is selected via settings.audio_pipeline ('openrouter' | 'aws').
@@ -49,7 +53,7 @@ async def analyze(
     pipeline modules directly."""
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(_run_sync_pipeline, audio_bytes, media_type, texto_original, nombre, curso, model),
+            asyncio.to_thread(_run_sync_pipeline, audio_bytes, media_type, texto_original, nombre, curso, model, duracion_seg),
             timeout=90.0,
         )
         return result

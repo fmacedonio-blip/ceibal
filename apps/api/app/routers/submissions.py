@@ -1,16 +1,22 @@
+from __future__ import annotations
+
+import re
 import uuid
 from datetime import date
+from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from app.database_async import get_async_db
 from app.schemas.submission import (
+    AudioCorrectionResponse,
     AudioSubmissionAnalyzeResponse,
     DashboardStudentRow,
     ErrorPattern,
     ProgressPoint,
     SubmissionAnalyzeResponse,
     SubmissionDetailResponse,
+    WritingCorrectionResponse,
 )
 from app.services import handwrite_analyze as hw_service
 from app.services import submission_service
@@ -19,6 +25,22 @@ from app.services.audio_analyze import analyze as audio_analyze
 from app.services.handwrite_analyze import HandwriteAnalyzeError
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
+
+
+def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
+    """Wrap each detected error word in the transcription with an <mark> tag."""
+    if not transcripcion or not errores:
+        return transcripcion
+    # Sort longest first to avoid partial replacements
+    sorted_errors = sorted(errores, key=lambda e: len(e.get("text", "")), reverse=True)
+    result = transcripcion
+    for error in sorted_errors:
+        word = error.get("text", "")
+        if not word:
+            continue
+        tag = f'<mark class="hw-error">{word}</mark>'
+        result = re.sub(rf'\b{re.escape(word)}\b', tag, result, count=1, flags=re.IGNORECASE)
+    return result
 
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 ALLOWED_AUDIO_TYPES = {
@@ -77,6 +99,7 @@ async def analyze_audio_submission(
     grade: int = Form(...),
     texto_original: str = Form(...),
     nombre: str = Form(...),
+    duracion_seg: Optional[float] = Form(None),  # sent by frontend to bypass webm metadata issue
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -93,7 +116,7 @@ async def analyze_audio_submission(
         raise HTTPException(status_code=400, detail="Empty audio file")
 
     try:
-        output = await audio_analyze(audio_bytes, file.content_type, texto_original, nombre, grade)
+        output = await audio_analyze(audio_bytes, file.content_type, texto_original, nombre, grade, duracion_seg=duracion_seg)
     except AudioAnalyzeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -163,3 +186,112 @@ async def student_progress(
     db=Depends(get_async_db),
 ) -> list[ProgressPoint]:
     return await submission_service.get_student_progress(db, student_id)
+
+
+@router.get(
+    "/submissions/{submission_id}/correction",
+    tags=["submissions"],
+)
+async def get_correction(
+    submission_id: uuid.UUID,
+    db=Depends(get_async_db),
+):
+    """Return structured correction data split into alumno and docente layers."""
+    submission = await submission_service.get_submission(
+        db=db,
+        submission_id=submission_id,
+        current_user_id=None,
+        current_role="docente",
+    )
+    ai = submission.ai_result or {}
+
+    if submission.submission_type == "audio":
+        errores_raw = ai.get("errores", [])
+        errores_alumno = [
+            {
+                "palabra_original": e.get("palabra_original", ""),
+                "lo_que_leyo": e.get("lo_que_leyo"),
+                "tipo": e.get("tipo", ""),
+                "explicacion": e.get("explicacion_alumno", ""),
+            }
+            for e in errores_raw
+        ]
+        errores_docente = [
+            {
+                "palabra_original": e.get("palabra_original", ""),
+                "lo_que_leyo": e.get("lo_que_leyo"),
+                "tipo": e.get("tipo", ""),
+                "explicacion_tecnica": e.get("explicacion_docente", ""),
+                "dudoso": e.get("dudoso", False),
+            }
+            for e in errores_raw
+        ]
+        return AudioCorrectionResponse(
+            submission_id=submission.id,
+            submission_type="audio",
+            status=submission.status,
+            alumno={
+                "feedback": ai.get("bloque_alumno", ""),
+                "errores": errores_alumno,
+                "consejos": ai.get("consejos_para_mejorar", []),
+            },
+            docente={
+                "feedback_tecnico": ai.get("bloque_docente", ""),
+                "ppm": ai.get("ppm", 0.0),
+                "precision": ai.get("precision", 0.0),
+                "nivel_orientativo": ai.get("nivel_orientativo", ""),
+                "errores": errores_docente,
+                "alertas_fluidez": ai.get("alertas_fluidez", []),
+            },
+        )
+
+    # handwrite
+    errores_agrupados = ai.get("errores_detectados_agrupados", [])
+    errores_alumno_hw = [
+        {
+            "texto": e.get("text", ""),
+            "correccion": e.get("correccion_alumno", ""),
+            "explicacion": e.get("explicacion_pedagogica", ""),
+        }
+        for e in errores_agrupados
+    ]
+    errores_docente_hw = [
+        {
+            "texto": e.get("text", ""),
+            "tipo": e.get("error_type", ""),
+            "explicacion_tecnica": e.get("explicacion_docente", ""),
+            "ocurrencias": e.get("ocurrencias", 1),
+            "confianza": e.get("confianza_lectura"),
+        }
+        for e in errores_agrupados
+    ]
+    consejos_hw = [
+        p.get("explicacion_pedagogica", p.get("descripcion", ""))
+        for p in ai.get("puntos_de_mejora", [])
+        if p.get("explicacion_pedagogica") or p.get("descripcion")
+    ]
+    # Build transcripcion_html on the fly if not stored (submissions via /submissions/analyze)
+    transcripcion_html = ai.get("transcripcion_html") or ""
+    if not transcripcion_html:
+        transcripcion_html = _build_transcripcion_html(
+            ai.get("transcripcion", ""), errores_agrupados
+        )
+    return WritingCorrectionResponse(
+        submission_id=submission.id,
+        submission_type="handwrite",
+        status=submission.status,
+        alumno={
+            "feedback": ai.get("feedback_inicial", ""),
+            "aspectos_positivos": ai.get("aspectos_positivos", []),
+            "transcripcion_html": transcripcion_html,
+            "errores": errores_alumno_hw,
+            "sugerencias_socraticas": ai.get("sugerencias_socraticas", []),
+            "consejos": consejos_hw,
+        },
+        docente={
+            "razonamiento": ai.get("razonamiento_docente", ""),
+            "errores": errores_docente_hw,
+            "puntos_de_mejora": ai.get("puntos_de_mejora", []),
+            "requires_review": submission.requires_review,
+        },
+    )

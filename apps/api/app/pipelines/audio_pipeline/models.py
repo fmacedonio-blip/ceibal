@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class ErrorLecturaOral(BaseModel):
     palabra_original: str
-    lo_que_leyo: str | None = None  # None para omisiones
+    lo_que_leyo: Optional[str] = None  # None para omisiones
     tipo: str  # sustitucion | omision | repeticion | autocorreccion
     dudoso: bool = False
+    explicacion_alumno: str = ""   # tono accesible para 8-12 años
+    explicacion_docente: str = ""  # tono técnico pedagógico
 
 
 class OutputCall1Audio(BaseModel):
@@ -34,4 +36,5 @@ class OutputFinalAudio(BaseModel):
     nivel_orientativo: str  # esperado | en_desarrollo | requiere_intervencion
     errores: List[ErrorLecturaOral]
     alertas_fluidez: List[str]
+    consejos_para_mejorar: List[str] = []  # tips pedagógicos en tono alumno
     calidad_audio_baja: bool = False

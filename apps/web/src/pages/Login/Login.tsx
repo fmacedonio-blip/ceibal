@@ -1,27 +1,32 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { HiLockClosed } from 'react-icons/hi2';
 import { devLogin } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
 import type { UserRole } from '../../types/api';
 import logo from '../../assets/logo.svg';
 
+const SEED_STUDENTS = [
+  { id: 1, name: 'María Suárez' },
+  { id: 2, name: 'Lucas Rodríguez' },
+  { id: 3, name: 'Valentina Pérez' },
+];
+
 export function Login() {
   const [role, setRole] = useState<UserRole>('docente');
+  const [studentId, setStudentId] = useState<number>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuthStore();
   const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: Location })?.from?.pathname ?? '/dashboard';
 
   async function handleLogin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await devLogin(role);
+      const res = await devLogin(role, role === 'alumno' ? studentId : undefined);
       login(res.access_token, res.user);
-      navigate(from, { replace: true });
+      navigate(role === 'alumno' ? '/alumno/inicio' : '/dashboard', { replace: true });
     } catch {
       setError('Error al iniciar sesión. Verificá que la API esté corriendo.');
     } finally {
@@ -50,6 +55,7 @@ export function Login() {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
+          flexWrap: 'wrap',
         }}
       >
         <label style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>Dev:</label>
@@ -71,6 +77,28 @@ export function Login() {
           <option value="director">Director/a</option>
           <option value="inspector">Inspector/a</option>
         </select>
+
+        {role === 'alumno' && (
+          <select
+            value={studentId}
+            onChange={(e) => setStudentId(Number(e.target.value))}
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: '1px solid #d1d5db',
+              fontSize: 12,
+              color: '#374151',
+              background: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            {SEED_STUDENTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Logo */}

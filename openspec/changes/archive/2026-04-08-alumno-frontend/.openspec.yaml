@@ -1,0 +1,4 @@
+name: alumno-frontend
+status: active
+created: 2026-04-08
+depends_on: alumno-backend
