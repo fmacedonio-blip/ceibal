@@ -1,11 +1,19 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../store/auth";
+import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  HiOutlineHome,
+  HiOutlineBookOpen,
+  HiOutlineChartBar,
+  HiOutlineCog6Tooth,
+} from 'react-icons/hi2';
+import { useAuthStore } from '../../store/auth';
+import { Avatar } from '../Avatar/Avatar';
+import logo from '../../assets/logo.svg';
 
 const NAV_ITEMS = [
-  { label: "Inicio", to: "/dashboard", icon: "⊞" },
-  { label: "Mis Cursos", to: "/courses", icon: "📚" },
-  { label: "Reportes", to: "/reports", icon: "📊" },
-  { label: "Configuración", to: "/settings", icon: "⚙️" },
+  { label: 'Inicio', to: '/dashboard', Icon: HiOutlineHome },
+  { label: 'Mis Cursos', to: '/courses', Icon: HiOutlineBookOpen },
+  { label: 'Reportes', to: '/reports', Icon: HiOutlineChartBar },
+  { label: 'Configuración', to: '/settings', Icon: HiOutlineCog6Tooth },
 ];
 
 export function Sidebar() {
@@ -14,80 +22,99 @@ export function Sidebar() {
 
   function handleLogout() {
     logout();
-    navigate("/login");
+    navigate('/login');
   }
 
   return (
-    <aside style={{
-      width: 200,
-      minHeight: "100vh",
-      background: "#fff",
-      borderRight: "1px solid #e5e7eb",
-      display: "flex",
-      flexDirection: "column",
-      padding: "24px 0",
-      flexShrink: 0,
-    }}>
+    <aside
+      style={{
+        width: 220,
+        height: '100%',
+        background: '#fff',
+        borderRight: '1px solid #e5e7eb',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+      }}
+    >
       {/* Logo */}
-      <div style={{ padding: "0 20px 32px" }}>
-        <span style={{ fontWeight: 700, fontSize: 18, color: "#00b89c" }}>● Ceibal</span>
+      <div
+        style={{
+          padding: '24px 24px 20px',
+          borderBottom: '1px solid #f3f4f6',
+        }}
+      >
+        <img src={logo} alt="Ceibal" style={{ height: 28, width: 'auto', display: 'block' }} />
       </div>
 
       {/* Nav */}
-      <nav style={{ flex: 1 }}>
-        {NAV_ITEMS.map((item) => (
+      <nav style={{ flex: 1, padding: '12px 0' }}>
+        {NAV_ITEMS.map(({ label, to, Icon }) => (
           <NavLink
-            key={item.to}
-            to={item.to}
+            key={to}
+            to={to}
             style={({ isActive }) => ({
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 20px",
-              color: isActive ? "#00b89c" : "#374151",
-              background: isActive ? "#f0fdf9" : "transparent",
-              textDecoration: "none",
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '11px 16px',
+              margin: '2px 12px',
+              borderRadius: 8,
+              color: isActive ? '#00b89c' : '#374151',
+              background: isActive ? '#e8faf8' : 'transparent',
+              textDecoration: 'none',
               fontWeight: isActive ? 600 : 400,
               fontSize: 14,
-              borderRadius: "0 8px 8px 0",
-              marginRight: 12,
+              transition: 'background 0.15s',
             })}
           >
-            <span>{item.icon}</span>
-            {item.label}
+            <Icon size={20} />
+            {label}
           </NavLink>
         ))}
       </nav>
 
-      {/* User info */}
-      <div style={{ padding: "16px 20px", borderTop: "1px solid #e5e7eb" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: "50%",
-            background: "#e5e7eb", display: "flex",
-            alignItems: "center", justifyContent: "center",
-            fontSize: 14, color: "#6b7280",
-          }}>
-            {user?.name?.[0] ?? "U"}
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
-              {user?.name ?? "Usuario"}
+      {/* User */}
+      <div
+        style={{
+          borderTop: '1px solid #e5e7eb',
+          padding: '16px 20px',
+        }}
+      >
+        {user && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Avatar name={user.name} size={40} fontSize={14} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#111827',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {user.name}
+              </div>
+              <button
+                onClick={handleLogout}
+                style={{
+                  fontSize: 11,
+                  color: '#9ca3af',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  textAlign: 'left',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {user.role}
+              </button>
             </div>
-            <div style={{ fontSize: 11, color: "#6b7280", textTransform: "capitalize" }}>
-              {user?.role ?? ""}
-            </div>
           </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          style={{
-            fontSize: 12, color: "#6b7280", background: "none",
-            border: "none", cursor: "pointer", padding: 0,
-          }}
-        >
-          Cerrar sesión
-        </button>
+        )}
       </div>
     </aside>
   );

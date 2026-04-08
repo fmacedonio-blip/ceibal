@@ -75,9 +75,20 @@ En producción se reemplaza por CAS (SSO Ceibal) — el middleware JWT no cambia
 - **Código**: inglés (variables, funciones, comentarios)
 - **UI**: español rioplatense
 - **Mock data**: `apps/api/app/mock_data.py` — reemplazar imports por queries cuando se implemente la DB
-- **Colores de promedio**: verde ≥8, amarillo ≥6, rojo <6
 
 ## Figma
 
 - MCP corriendo en Figma Desktop: `http://127.0.0.1:3845/mcp`
-- Screens: Login `1:2` · Dashboard `1:41` · Mis Cursos `1:237` · Alumnos `1:411` · Detalle `1:677`
+- Frame raíz: `DOCENTE` (`53:1411`) — todas las pantallas son hijos directos de este frame
+- Screens: Login `52:340` · Inicio `52:379` · Mis Cursos `52:574` · Alumnos `52:747` · Detalle Alumno `52:1012` · Detalle Actividad `52:1271`
+
+### Lineamientos de implementación UI
+
+- **Fidelidad al Figma**: Cada pantalla debe quedar lo más fiel posible al diseño de Figma. Tomarse el tiempo necesario para revisar espaciados, colores, tipografías y jerarquía visual antes de dar por terminada una pantalla.
+- **Consultar el MCP antes de implementar**: Antes de tocar cualquier componente visual, obtener screenshot del nodo correspondiente en Figma para guiar la implementación.
+- **Responsive desktop**: Los frames de Figma tienen anchos fijos (ej. 1311px) que NO deben trasladarse al código. El layout debe adaptarse al viewport real del navegador desktop (1024px–1920px+). Regla: Sidebar con ancho semántico fijo (`w-64`), contenido principal con `flex-1`. Nunca usar `width` fijo en píxeles en contenedores de layout.
+- **Sin responsive mobile/tablet en el MVP**: La app está pensada para docentes en desktop. No se implementa responsive para pantallas menores a 1024px.
+- **Fuente**: Inter (importada vía `@fontsource/inter`, no CDN externo).
+- **Iconos**: `react-icons` familia `hi2` (Heroicons v2). Importar siempre íconos individuales, nunca el barrel completo.
+- **Colores de estado por promedio**: verde ≥8, amarillo ≥6, rojo <6.
+- **Avatares**: iniciales del nombre + color de fondo determinístico (hash del nombre → paleta de 10 colores pastel).

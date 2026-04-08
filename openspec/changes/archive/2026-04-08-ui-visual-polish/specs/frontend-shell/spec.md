@@ -1,23 +1,4 @@
-## ADDED Requirements
-
-### Requirement: Guard de autenticación en rutas protegidas
-El sistema SHALL redirigir automáticamente a `/login` cuando el usuario intenta acceder a una ruta protegida sin token válido.
-
-#### Scenario: Acceso sin token
-- **WHEN** el usuario navega a `/dashboard` sin token en localStorage
-- **THEN** es redirigido inmediatamente a `/login`
-
-#### Scenario: Acceso con token expirado
-- **WHEN** el usuario tiene un token en localStorage cuya fecha `exp` ya pasó
-- **THEN** es redirigido a `/login` y el token es eliminado de localStorage
-
-#### Scenario: Acceso con token válido
-- **WHEN** el usuario tiene un token válido y navega a `/dashboard`
-- **THEN** la pantalla de dashboard se renderiza sin redireccionamiento
-
-#### Scenario: Redirect post-login
-- **WHEN** el usuario es redirigido a `/login` desde una ruta protegida y luego se autentica
-- **THEN** es redirigido a la ruta original que intentó acceder
+## MODIFIED Requirements
 
 ### Requirement: Layout shell con Sidebar y área de contenido
 Todas las rutas autenticadas SHALL renderizar dentro de un layout que contiene un Sidebar fijo a la izquierda con `height: 100vh`, ancho fijo semántico (ej. `w-64`) y `flex-shrink: 0`, y un área de contenido principal a la derecha con `flex: 1` y `overflow-y: auto` para su propio scroll independiente. El contenedor raíz SHALL usar `display: flex; height: 100vh; overflow: hidden`. El layout SHALL adaptarse al ancho real del viewport desktop sin usar anchos fijos de Figma. El Sidebar NO debe verse afectado por el scroll del contenido, consistente con los diseños de Figma (nodos `52:379`, `52:574`, `52:747`, `52:1012`, `52:1271`).
@@ -42,24 +23,7 @@ Todas las rutas autenticadas SHALL renderizar dentro de un layout que contiene u
 - **WHEN** el usuario está en `/login`
 - **THEN** el Sidebar NO está presente; se muestra solo la pantalla de login
 
-### Requirement: Navegación entre las 5 pantallas
-El sistema SHALL implementar routing client-side para las 5 rutas del MVP sin recarga de página.
-
-#### Scenario: Navegación a Mis Cursos
-- **WHEN** el usuario hace click en "Mis Cursos" en el Sidebar
-- **THEN** la URL cambia a `/courses` y se renderiza la pantalla de cursos sin recarga
-
-#### Scenario: Navegación a lista de alumnos
-- **WHEN** el usuario hace click en "Ver alumnos" en una card de curso
-- **THEN** la URL cambia a `/courses/:id/students` y se muestra la lista de alumnos de ese curso
-
-#### Scenario: Navegación a detalle de alumno
-- **WHEN** el usuario hace click en "Ver detalle" de un alumno
-- **THEN** la URL cambia a `/students/:id` y se muestra el detalle del alumno
-
-#### Scenario: Breadcrumb en detalle de alumno
-- **WHEN** el usuario está en `/students/:id`
-- **THEN** el breadcrumb muestra "Mis Cursos > [Nombre del Curso] > [Nombre del Alumno]" y cada parte es navegable
+## MODIFIED Requirements
 
 ### Requirement: Pantalla de login con selector de rol para desarrollo
 En entorno de desarrollo, la pantalla de login SHALL mostrar el logo SVG de Ceibal centrado en la parte superior, seguido de una card blanca con título "Copiloto Pedagógico", subtítulo "Ingresá con tu cuenta Ceibal", botón teal "Iniciar sesión" con ícono de candado, y texto secundario "Acceso mediante Single Sign-On Institucional". El fondo SHALL ser gris claro. El selector de rol (docente/alumno) SHALL estar ubicado en la esquina superior izquierda como elemento superpuesto para no interferir con la visual principal (Figma nodo `52:340`).

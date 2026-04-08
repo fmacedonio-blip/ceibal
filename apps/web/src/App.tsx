@@ -1,11 +1,12 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { AuthLayout } from "./components/Layout/AuthLayout";
-import { ProtectedRoute } from "./router/ProtectedRoute";
-import { Login } from "./pages/Login/Login";
-import { Dashboard } from "./pages/Dashboard/Dashboard";
-import { Courses } from "./pages/Courses/Courses";
-import { Students } from "./pages/Students/Students";
-import { StudentDetail } from "./pages/StudentDetail/StudentDetail";
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AuthLayout } from './components/Layout/AuthLayout';
+import { ProtectedRoute } from './router/ProtectedRoute';
+import { Login } from './pages/Login/Login';
+import { Dashboard } from './pages/Dashboard/Dashboard';
+import { Courses } from './pages/Courses/Courses';
+import { Students } from './pages/Students/Students';
+import { StudentDetail } from './pages/StudentDetail/StudentDetail';
+import { ActivityDetail } from './pages/ActivityDetail/ActivityDetail';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:courseId/students" element={<Students />} />
           <Route path="/students/:studentId" element={<StudentDetail />} />
+          <Route path="/students/:studentId/activities/:activityId" element={<ActivityDetail />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
