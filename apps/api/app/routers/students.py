@@ -52,6 +52,7 @@ def get_student(
                 "date": a.date,
                 "score": a.score,
                 "status": a.status,
+                "submission_id": str(a.submission_id) if a.submission_id else None,
             }
             for a in activities
         ],

@@ -6,6 +6,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import Response
 
 from app.database_async import get_async_db
 from app.schemas.submission import (
@@ -32,30 +33,18 @@ from app.pipelines.audio_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_AUDIO
 from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file
 
 
-def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
-    if not transcripcion or not errores:
-        return transcripcion
-    sorted_errors = sorted(errores, key=lambda e: len(e.text), reverse=True)
-    result = transcripcion
-    for error in sorted_errors:
-        word = re.escape(error.text)
-        msg = (error.correccion_alumno or error.explicacion_pedagogica).replace('"', "&quot;")
-        tag = f'<error msg="{msg}">{error.text}</error>'
-        result = re.sub(rf'\b{word}\b', tag, result, flags=re.IGNORECASE)
-    return result
-
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 
 
 def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
-    """Wrap each detected error word in the transcription with an <mark> tag."""
+    """Wrap each detected error word in the transcription with a <mark> tag."""
     if not transcripcion or not errores:
         return transcripcion
     # Sort longest first to avoid partial replacements
-    sorted_errors = sorted(errores, key=lambda e: len(e.get("text", "")), reverse=True)
+    sorted_errors = sorted(errores, key=lambda e: len(e.text if hasattr(e, "text") else e.get("text", "")), reverse=True)
     result = transcripcion
     for error in sorted_errors:
-        word = error.get("text", "")
+        word = error.text if hasattr(error, "text") else error.get("text", "")
         if not word:
             continue
         tag = f'<mark class="hw-error">{word}</mark>'
@@ -76,6 +65,7 @@ async def analyze_submission(
     class_id: uuid.UUID = Form(...),
     grade: int = Form(...),
     student_id: uuid.UUID = Form(...),
+    activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> SubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -99,6 +89,9 @@ async def analyze_submission(
         class_id=class_id,
         grade=grade,
         output=output,
+        activity_id=activity_id,
+        image_bytes=image_bytes,
+        image_content_type=file.content_type,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -118,6 +111,7 @@ async def analyze_submission_aws(
     grade: int = Form(...),
     student_id: uuid.UUID = Form(...),
     modelo: str = Form(AWS_DEFAULT_MODEL),
+    activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> SubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -160,6 +154,7 @@ async def analyze_submission_aws(
         grade=grade,
         output=output,
         s3_key=s3_key,
+        activity_id=activity_id,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -181,6 +176,7 @@ async def analyze_audio_submission(
     texto_original: str = Form(...),
     nombre: str = Form(...),
     duracion_seg: Optional[float] = Form(None),  # sent by frontend to bypass webm metadata issue
+    activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -214,6 +210,7 @@ async def analyze_audio_submission(
         output=output,
         submission_type="audio",
         ai_result_override=ai_result_dict,
+        activity_id=activity_id,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -237,6 +234,7 @@ async def analyze_audio_submission_aws(
     texto_original: str = Form(...),
     nombre: str = Form(...),
     modelo: str = Form(AWS_AUDIO_DEFAULT_MODEL),
+    activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -291,6 +289,7 @@ async def analyze_audio_submission_aws(
         submission_type="audio",
         ai_result_override=ai_result_dict,
         s3_key=s3_key,
+        activity_id=activity_id,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -452,4 +451,24 @@ async def get_correction(
             "puntos_de_mejora": ai.get("puntos_de_mejora", []),
             "requires_review": submission.requires_review,
         },
+    )
+
+
+@router.get("/submissions/{submission_id}/image", tags=["submissions"])
+async def get_submission_image(
+    submission_id: uuid.UUID,
+    db=Depends(get_async_db),
+) -> Response:
+    """Return the original image submitted by the student."""
+    submission = await submission_service.get_submission(
+        db=db,
+        submission_id=submission_id,
+        current_user_id=None,
+        current_role="docente",
+    )
+    if not submission.image_data:
+        raise HTTPException(status_code=404, detail="No image stored for this submission")
+    return Response(
+        content=submission.image_data,
+        media_type=submission.image_content_type or "image/jpeg",
     )

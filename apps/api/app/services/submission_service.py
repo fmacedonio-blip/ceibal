@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -11,6 +12,8 @@ from app.models.submission import Submission, SubmissionError
 from app.pipelines.audio_pipeline.models import OutputFinalAudio
 from app.pipelines.handwrite_pipeline.models import OutputFinal
 from app.schemas.submission import DashboardStudentRow, ErrorPattern, ProgressPoint
+
+logger = logging.getLogger(__name__)
 
 CHAT_MAX_TURNS = 20
 
@@ -48,6 +51,33 @@ def _compute_audio_metrics(output: OutputFinalAudio) -> dict[str, Any]:
     }
 
 
+def _link_activity(activity_id: int, submission_id: uuid.UUID) -> None:
+    """Best-effort sync update: link Activity to Submission and increment tasks_completed."""
+    from app.database import SessionLocal
+    from app.models.existing import Activity, Student
+
+    try:
+        db_sync = SessionLocal()
+        try:
+            activity = db_sync.query(Activity).filter(Activity.id == activity_id).first()
+            if activity is None:
+                logger.warning("activity_id=%s not found — skipping activity link", activity_id)
+                return
+            activity.status = "PENDIENTE_DE_REVISION"
+            activity.submission_id = submission_id
+            student = db_sync.query(Student).filter(Student.id == activity.student_id).first()
+            if student is not None:
+                student.tasks_completed = (student.tasks_completed or 0) + 1
+            db_sync.commit()
+        except Exception:
+            db_sync.rollback()
+            raise
+        finally:
+            db_sync.close()
+    except Exception as exc:
+        logger.error("Failed to link activity_id=%s to submission %s: %s", activity_id, submission_id, exc)
+
+
 async def persist_result(
     db: AsyncSession,
     student_id: uuid.UUID,
@@ -58,6 +88,9 @@ async def persist_result(
     submission_type: str = "handwrite",
     ai_result_override: dict[str, Any] | None = None,
     s3_key: str | None = None,
+    activity_id: int | None = None,
+    image_bytes: bytes | None = None,
+    image_content_type: str | None = None,
 ) -> Submission:
     if submission_type == "audio":
         metrics = _compute_audio_metrics(output)  # type: ignore[arg-type]
@@ -79,6 +112,8 @@ async def persist_result(
         status="processed",
         submission_type=submission_type,
         ai_result=ai_result,
+        image_data=image_bytes,
+        image_content_type=image_content_type,
         **metrics,
     )
 
@@ -113,6 +148,9 @@ async def persist_result(
     except Exception:
         await db.rollback()
         raise
+
+    if activity_id is not None:
+        _link_activity(activity_id, submission.id)
 
     return submission
 

@@ -79,7 +79,7 @@ def get_my_tasks(request: Request, db: Session = Depends(get_db)) -> list:
             "date": a.date,
             "score": a.score,
             "status": a.status,
-            "submission_id": None,  # TODO: link to submission when student submits
+            "submission_id": str(a.submission_id) if a.submission_id else None,
         }
         for a in activities
     ]

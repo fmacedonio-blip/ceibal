@@ -90,6 +90,7 @@ export function TareaLectura() {
       const result = await submitAudio(
         audioBlob, user.student_uuid, classUuid, grade,
         textoOriginal, user.name,
+        Number(taskId),
         elapsedRef.current, // pass elapsed so backend doesn't need to parse webm header
       );
       navigate(`/alumno/tarea/${taskId}/correccion-lectura`, {

@@ -22,12 +22,14 @@ export async function submitWriting(
   studentUuid: string,
   classUuid: string,
   grade: number,
+  activityId: number,
 ): Promise<{ submission_id: string }> {
   const form = new FormData();
   form.append('file', file);
   form.append('student_id', studentUuid);
   form.append('class_id', classUuid);
   form.append('grade', String(grade));
+  form.append('activity_id', String(activityId));
 
   const res = await apiClient.post<{ submission_id: string }>(
     '/api/v1/submissions/analyze',
@@ -44,6 +46,7 @@ export async function submitAudio(
   grade: number,
   textoOriginal: string,
   nombre: string,
+  activityId: number,
   duracionSeg?: number,
 ): Promise<{ submission_id: string }> {
   const form = new FormData();
@@ -53,6 +56,7 @@ export async function submitAudio(
   form.append('grade', String(grade));
   form.append('texto_original', textoOriginal);
   form.append('nombre', nombre);
+  form.append('activity_id', String(activityId));
   if (duracionSeg != null && duracionSeg > 0) {
     form.append('duracion_seg', String(duracionSeg));
   }
@@ -63,6 +67,11 @@ export async function submitAudio(
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );
   return res.data;
+}
+
+export function getSubmissionImageUrl(submissionId: string): string {
+  const base = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
+  return `${base}/api/v1/submissions/${submissionId}/image`;
 }
 
 export async function getCorrection(submissionId: string): Promise<CorrectionResponse> {

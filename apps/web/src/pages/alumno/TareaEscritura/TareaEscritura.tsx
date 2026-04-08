@@ -49,7 +49,7 @@ export function TareaEscritura() {
       const gradeMatch = me.course?.name.match(/(\d+)/);
       const grade = gradeMatch ? parseInt(gradeMatch[1]) : 4;
 
-      const result = await submitWriting(file, user.student_uuid, classUuid, grade);
+      const result = await submitWriting(file, user.student_uuid, classUuid, grade, Number(taskId));
       navigate(`/alumno/tarea/${taskId}/correccion-escritura`, {
         state: { submissionId: result.submission_id },
       });

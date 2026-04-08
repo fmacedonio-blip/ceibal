@@ -7,6 +7,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     Integer,
+    LargeBinary,
     Numeric,
     SmallInteger,
     Text,
@@ -38,6 +39,8 @@ class Submission(Base):
     lectura_insuficiente = Column(Boolean, nullable=False, default=False)
     ai_result = Column(JSONB, nullable=True)
     submission_type = Column(Text, nullable=False, default="handwrite")  # handwrite | audio
+    image_data = Column(LargeBinary, nullable=True)
+    image_content_type = Column(Text, nullable=True)
 
 
 class SubmissionError(Base):

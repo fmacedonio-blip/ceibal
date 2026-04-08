@@ -1,37 +1,4 @@
-## ADDED Requirements
-
-### Requirement: Pantalla de detalle de actividad individual
-El sistema SHALL proveer una pantalla en la ruta `/students/:studentId/activities/:activityId` que muestra el detalle completo de una actividad del alumno. Usa el layout shell autenticado (Sidebar + área de contenido con scroll). Referencia Figma: nodo `52:1271`.
-
-#### Scenario: Acceso desde el historial de actividades
-- **WHEN** el usuario hace click en "Ver detalle" en una fila del historial del alumno
-- **THEN** la URL cambia a `/students/:studentId/activities/:activityId` y se renderiza la pantalla sin recarga
-
-#### Scenario: Breadcrumb completo y navegable
-- **WHEN** el usuario está en la pantalla de detalle de actividad
-- **THEN** el breadcrumb muestra "Mis Cursos › [Curso] › [Nombre Alumno] › [Título Actividad]" y cada segmento es un link navegable hacia su ruta correspondiente
-
-### Requirement: Header de la actividad
-La pantalla SHALL mostrar en la parte superior: un badge de estado tipo "CORRECCIÓN ASISTIDA" con ícono check verde cuando la actividad fue corregida, el título de la actividad en tipografía grande, y el nombre del alumno con la fecha/hora de entrega en texto secundario.
-
-#### Scenario: Badge de corrección asistida
-- **WHEN** la actividad tiene estado REVISADA o COMPLETADA
-- **THEN** se muestra el badge "CORRECCIÓN ASISTIDA" con ícono de check en color verde antes del título
-
-#### Scenario: Header completo visible
-- **WHEN** la pantalla se renderiza
-- **THEN** se muestran: badge de estado, título de la actividad, y "[Nombre Alumno] — Entregado el [fecha], [hora]"
-
-### Requirement: Sección Original del Alumno
-La pantalla SHALL mostrar una card "Original del Alumno" con la imagen del trabajo manuscrito o producción del alumno. Si no hay imagen disponible, SHALL mostrar un placeholder.
-
-#### Scenario: Imagen del trabajo visible
-- **WHEN** la actividad tiene una imagen asociada
-- **THEN** se muestra la imagen dentro de la card "Original del Alumno" con bordes redondeados
-
-#### Scenario: Sin imagen
-- **WHEN** la actividad no tiene imagen asociada
-- **THEN** se muestra un placeholder indicando que no hay imagen disponible
+## MODIFIED Requirements
 
 ### Requirement: Panel de Diagnóstico IA
 La pantalla SHALL mostrar un panel lateral derecho "Diagnóstico IA" con fondo degradado (`linear-gradient(128deg, #faf5ff, #eff6ff)`), con dos subsecciones: "OBSERVACIONES ORTOGRÁFICAS" (con tarjeta interna "ERRORES DETECTADOS" en color `#e7000b`) y "SUGERENCIAS PEDAGÓGICAS" (con tarjeta interna "RECOMENDACIÓN" en color `#155dfc`). Cuando hay un `submission_id` disponible, el contenido SHALL provenir del campo `docente` de `GET /api/v1/submissions/{submission_id}/correction`. En ausencia de `submission_id`, SHALL mostrar un mensaje indicando que el diagnóstico no está disponible.
@@ -66,6 +33,8 @@ La pantalla SHALL mostrar una sección "Feedback Entregado al Alumno" con el tex
 - **WHEN** la actividad no tiene `submission_id`
 - **THEN** la sección muestra "Sin feedback registrado"
 
+## ADDED Requirements
+
 ### Requirement: Carga de datos reales de submission
 La pantalla SHALL detectar si la actividad tiene `submission_id`. Cuando lo tiene, SHALL hacer `GET /api/v1/submissions/{submission_id}/correction` y usar la respuesta para poblar las secciones de transcripción, feedback al alumno y diagnóstico IA. El renderizado SHALL soportar tanto `submission_type === 'handwrite'` como `submission_type === 'audio'`.
 
@@ -83,32 +52,3 @@ Cuando `submission_type === 'audio'`, la pantalla SHALL mostrar: en "Original de
 #### Scenario: ActivityDetail para lectura en voz alta
 - **WHEN** la actividad tiene `submission_id` y `submission_type === 'audio'`
 - **THEN** el panel "Diagnóstico IA" muestra PPM, precisión y nivel orientativo, y la lista de errores de pronunciación/sustitución del campo `correction.docente.errores`
-
-### Requirement: Botón Volver al historial
-La pantalla SHALL mostrar un botón "Volver al historial" al final del contenido que navega de regreso al detalle del alumno.
-
-#### Scenario: Navegación de vuelta
-- **WHEN** el usuario hace click en "Volver al historial"
-- **THEN** navega a `/students/:studentId` sin recargar la página
-
-### Requirement: Estado visual por color en detalle
-Los badges de estado SHALL usar los colores del sistema: verde para REVISADA/COMPLETADA, amarillo para PENDIENTE_DE_REVISION, rojo para NO_ENTREGADO.
-
-#### Scenario: Estado REVISADA
-- **WHEN** la actividad tiene estado REVISADA o COMPLETADA
-- **THEN** el badge se muestra en verde
-
-#### Scenario: Estado PENDIENTE_DE_REVISION
-- **WHEN** la actividad tiene estado PENDIENTE_DE_REVISION
-- **THEN** el badge se muestra en amarillo/naranja
-
-#### Scenario: Estado NO_ENTREGADO
-- **WHEN** la actividad tiene estado NO_ENTREGADO
-- **THEN** el badge se muestra en rojo y no hay link "Ver detalle" (la fila en el historial no es clickeable)
-
-### Requirement: Actividad no encontrada
-Si el `activityId` no corresponde a ninguna actividad del alumno, la pantalla SHALL mostrar un mensaje de error sin romper el layout shell.
-
-#### Scenario: Actividad no encontrada
-- **WHEN** el `activityId` en la URL no existe para ese alumno
-- **THEN** se muestra el mensaje "Actividad no encontrada" dentro del área de contenido, manteniendo el Sidebar y el breadcrumb visibles

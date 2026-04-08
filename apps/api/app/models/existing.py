@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+
 from sqlalchemy import (
     JSON,
     Column,
@@ -76,6 +77,7 @@ class Activity(Base):
     type = Column(String, nullable=True)  # escritura | lectura
     subject = Column(String, nullable=False, default="Lengua")
     reading_text = Column(Text, nullable=True)  # text to read aloud (only for type=lectura)
+    submission_id = Column(UUID(as_uuid=True), nullable=True)
 
     student = relationship("Student", back_populates="activities")
 

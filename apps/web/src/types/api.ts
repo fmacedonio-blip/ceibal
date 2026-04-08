@@ -92,6 +92,7 @@ export interface ActivityHistory {
   date: string;
   score: number | null;
   status: ActivityDetailStatus;
+  submission_id: string | null;
 }
 
 export interface StudentDetail {
