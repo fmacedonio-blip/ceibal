@@ -35,7 +35,7 @@ async def handwrite_analyze(
     logger.info("Imagen recibida | tamaño=%d bytes tipo=%s", len(imagen_bytes), imagen.content_type)
 
     try:
-        result = analyze(imagen_bytes, imagen.content_type, curso, modelo)
+        result = await analyze(imagen_bytes, imagen.content_type, curso, modelo)
         logger.info("Análisis completado | curso=%d errores=%d", curso, len(result.errores_detectados_agrupados))
         return result
     except HandwriteAnalyzeError as exc:

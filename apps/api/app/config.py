@@ -8,6 +8,9 @@ _ROOT_DIR = _API_DIR.parent.parent
 _ENV_FILES = [str(_API_DIR / ".env"), str(_ROOT_DIR / ".env")]
 
 
+_VALID_PIPELINES = {"openrouter", "aws"}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_ENV_FILES,
@@ -21,6 +24,15 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 24
     database_url: str = "postgresql://ceibal:ceibal_dev_pass@localhost:5432/ceibal_dev"
     cors_origins: str = "http://localhost:5173"
+    handwrite_pipeline: str = "openrouter"
+    openrouter_api_key: str = ""
+    openrouter_chat_model: str = "anthropic/claude-sonnet-4-6"
+
+    def model_post_init(self, __context: object) -> None:
+        if self.handwrite_pipeline not in _VALID_PIPELINES:
+            raise ValueError(
+                f"HANDWRITE_PIPELINE must be one of {_VALID_PIPELINES}, got '{self.handwrite_pipeline}'"
+            )
 
     @property
     def cors_origins_list(self) -> list[str]:
