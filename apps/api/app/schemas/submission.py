@@ -6,14 +6,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from app.pipelines.handwrite_pipeline.models import OutputFinal
 
-class SubmissionAnalyzeResponse(BaseModel):
+
+class SubmissionAnalyzeResponse(OutputFinal):
     submission_id: uuid.UUID
     status: str
-    feedback_inicial: str
-    sugerencias_socraticas: list[str]
-    total_errors: int
-    requires_review: bool
 
 
 class AudioSubmissionAnalyzeResponse(BaseModel):

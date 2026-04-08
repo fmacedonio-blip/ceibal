@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     audio_pipeline: str = "openrouter"
     openrouter_api_key: str = ""
     openrouter_chat_model: str = "anthropic/claude-sonnet-4-6"
+    gateway_ai_url: str = ""
+    gateway_file_url: str = ""
+    s3_bucket_handwrite: str = "ceibal-gateway-file-uploads-dev"
+    aws_region: str = "us-east-1"
 
     def model_post_init(self, __context: object) -> None:
         if self.handwrite_pipeline not in _VALID_PIPELINES:

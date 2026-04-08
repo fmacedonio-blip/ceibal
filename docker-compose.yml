@@ -24,6 +24,10 @@ services:
       ENV: ${ENV:-development}
       CORS_ORIGINS: "http://localhost,http://localhost:80"
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      GATEWAY_AI_URL: ${GATEWAY_AI_URL}
+      GATEWAY_FILE_URL: ${GATEWAY_FILE_URL}
+      S3_BUCKET_HANDWRITE: ${S3_BUCKET_HANDWRITE:-ceibal-gateway-file-uploads-dev}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
     ports:
       - "8000:8000"
     depends_on:
