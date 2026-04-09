@@ -48,9 +48,10 @@ export async function submitAudio(
   nombre: string,
   activityId: number,
   duracionSeg?: number,
+  filename?: string,
 ): Promise<{ submission_id: string; consigna_no_cumplida: boolean }> {
   const form = new FormData();
-  form.append('file', audioBlob, 'recording.webm');
+  form.append('file', audioBlob, filename ?? 'recording.webm');
   form.append('student_id', studentUuid);
   form.append('class_id', classUuid);
   form.append('grade', String(grade));
