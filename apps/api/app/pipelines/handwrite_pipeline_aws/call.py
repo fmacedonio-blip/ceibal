@@ -8,7 +8,7 @@ from app.config import settings
 from app.pipelines.handwrite_pipeline_aws.curriculum import get_curriculum_block
 from app.pipelines.handwrite_pipeline_aws.models import OutputCall1, OutputFinal
 from app.pipelines.handwrite_pipeline_aws.session import GatewaySession
-from app.pipelines.handwrite_pipeline.prompts import (
+from app.pipelines.handwrite_pipeline_aws.prompts import (
     SYSTEM_CALL1,
     SYSTEM_CALL2,
     build_call1_prompt_text,
