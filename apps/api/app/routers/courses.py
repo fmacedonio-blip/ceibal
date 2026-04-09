@@ -1,11 +1,10 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.auth.jwt import decode_token
 from app.database import get_db
 from app.models import Activity, Course, Student, User
 from app.models.submission import Submission
@@ -13,29 +12,12 @@ from app.models.submission import Submission
 router = APIRouter(prefix="/api/v1", tags=["courses"])
 
 
-def _get_teacher(request: Request, db: Session) -> User | None:
-    """Read JWT from Authorization header and return the matching User, or None."""
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        return None
-    try:
-        claims = decode_token(auth.split(" ", 1)[1])
-    except ValueError:
-        return None
-    return db.query(User).filter(User.sub == claims.get("sub")).first()
-
-
 @router.get("/courses")
 def list_courses(
-    user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list:
-    db_user = db.query(User).filter(User.sub == user.get("sub")).first()
-    teacher_id = db_user.id if db_user else None
-    query = db.query(Course)
-    if teacher_id:
-        query = query.filter(Course.teacher_id == teacher_id)
-    courses = query.all()
+    courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
 
     result = []
     for c in courses:
@@ -60,7 +42,7 @@ def list_students(
     search: str = "",
     page: int = 1,
     limit: int = 6,
-    _user: dict = Depends(get_current_user),
+    _user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
     query = db.query(Student).filter(Student.course_id == course_id)
@@ -94,22 +76,18 @@ def list_students(
 @router.get("/courses/{course_id}/tasks")
 def list_course_tasks(
     course_id: int,
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list:
-    db_user = _get_teacher(request, db)
     course = db.query(Course).filter(Course.id == course_id).first()
-
-    if not course or not db_user or course.teacher_id != db_user.id:
+    if not course or course.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    # Get distinct tasks by name+type+date (one row per task, not per student)
     students = db.query(Student).filter(Student.course_id == course_id).all()
     student_ids = [s.id for s in students]
     if not student_ids:
         return []
 
-    # Use the first occurrence of each unique (name, type, date) to represent the task
     seen: set[tuple] = set()
     tasks: list[dict] = []
     activities = (
@@ -124,7 +102,6 @@ def list_course_tasks(
         if key in seen:
             continue
         seen.add(key)
-        total = sum(1 for s in student_ids if True)  # all students
         completed = sum(
             1 for act in activities
             if act.name == a.name and act.type == a.type and act.date == a.date
@@ -152,13 +129,11 @@ class CreateTaskBody(BaseModel):
 def create_course_task(
     course_id: int,
     body: CreateTaskBody,
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    db_user = _get_teacher(request, db)
     course = db.query(Course).filter(Course.id == course_id).first()
-
-    if not course or not db_user or course.teacher_id != db_user.id:
+    if not course or course.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
     students = db.query(Student).filter(Student.course_id == course_id).all()
@@ -187,15 +162,13 @@ def create_course_task(
 def get_task_detail(
     course_id: int,
     task_id: int,
-    request: Request,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    db_user = _get_teacher(request, db)
     course = db.query(Course).filter(Course.id == course_id).first()
-    if not course or not db_user or course.teacher_id != db_user.id:
+    if not course or course.teacher_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
-    # Load the reference activity to get name+type
     ref_activity = db.query(Activity).filter(Activity.id == task_id).first()
     if not ref_activity:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")

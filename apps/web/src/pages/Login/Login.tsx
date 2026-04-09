@@ -1,40 +1,71 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  AuthenticationDetails,
+  CognitoUser,
+  CognitoUserPool,
+} from 'amazon-cognito-identity-js';
 import { HiLockClosed } from 'react-icons/hi2';
-import { devLogin } from '../../api/auth';
 import { useAuthStore } from '../../store/auth';
-import type { UserRole } from '../../types/api';
+import type { AuthUser, UserRole } from '../../types/api';
 import logo from '../../assets/logo.svg';
 
-const SEED_STUDENTS = [
-  { id: 1, name: 'María Suárez' },
-  { id: 2, name: 'Lucas Rodríguez' },
-  { id: 3, name: 'Valentina Pérez' },
-  { id: 4, name: 'Sofía García' },
-  { id: 5, name: 'Mateo Ríos' },
-];
-
 export function Login() {
-  const [role, setRole] = useState<UserRole>('docente');
-  const [studentId, setStudentId] = useState<number>(1);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  async function handleLogin() {
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      const res = await devLogin(role, role === 'alumno' ? studentId : undefined);
-      login(res.access_token, res.user);
-      navigate(role === 'alumno' ? '/alumno/inicio' : '/dashboard', { replace: true });
-    } catch {
-      setError('Error al iniciar sesión. Verificá que la API esté corriendo.');
-    } finally {
-      setLoading(false);
-    }
+
+    const userPool = new CognitoUserPool({
+      UserPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
+      ClientId: import.meta.env.VITE_COGNITO_CLIENT_ID,
+    });
+    const cognitoUser = new CognitoUser({ Username: email, Pool: userPool });
+    const authDetails = new AuthenticationDetails({ Username: email, Password: password });
+
+    cognitoUser.authenticateUser(authDetails, {
+      onSuccess(result) {
+        const token = result.getIdToken().getJwtToken();
+        const payload = result.getIdToken().payload;
+        const groups: string[] = (payload['cognito:groups'] as string[]) ?? [];
+        const role = (groups[0] ?? 'docente') as UserRole;
+        const user: AuthUser = {
+          id: payload.sub,
+          name: (payload.name as string) ?? (payload['cognito:username'] as string) ?? payload.sub,
+          role,
+        };
+        login(token, user);
+        navigate(role === 'alumno' ? '/alumno/inicio' : '/dashboard', { replace: true });
+      },
+      onFailure(err) {
+        const msg: Record<string, string> = {
+          NotAuthorizedException: 'Email o contraseña incorrectos.',
+          UserNotFoundException: 'Usuario no encontrado.',
+          UserNotConfirmedException: 'Cuenta no confirmada. Revisá tu email.',
+        };
+        setError(msg[err.code] ?? err.message ?? 'Error al iniciar sesión.');
+        setLoading(false);
+      },
+    });
   }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '11px 14px',
+    borderRadius: 8,
+    border: '1px solid #d1d5db',
+    fontSize: 14,
+    color: '#111827',
+    outline: 'none',
+    boxSizing: 'border-box',
+  };
 
   return (
     <div
@@ -48,65 +79,8 @@ export function Login() {
         position: 'relative',
       }}
     >
-      {/* Dev role selector — top left */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          flexWrap: 'wrap',
-        }}
-      >
-        <label style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>Dev:</label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as UserRole)}
-          style={{
-            padding: '4px 8px',
-            borderRadius: 6,
-            border: '1px solid #d1d5db',
-            fontSize: 12,
-            color: '#374151',
-            background: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          <option value="docente">Docente</option>
-          <option value="alumno">Alumno</option>
-          <option value="director">Director/a</option>
-          <option value="inspector">Inspector/a</option>
-        </select>
-
-        {role === 'alumno' && (
-          <select
-            value={studentId}
-            onChange={(e) => setStudentId(Number(e.target.value))}
-            style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: '1px solid #d1d5db',
-              fontSize: 12,
-              color: '#374151',
-              background: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            {SEED_STUDENTS.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {/* Logo */}
       <img src={logo} alt="Ceibal" style={{ height: 36, width: 'auto', marginBottom: 32 }} />
 
-      {/* Card */}
       <div
         style={{
           background: '#fff',
@@ -114,51 +88,87 @@ export function Login() {
           padding: '48px 40px',
           boxShadow: '0 1px 8px rgba(0,0,0,0.08)',
           width: 400,
-          textAlign: 'center',
         }}
       >
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8, textAlign: 'center' }}>
           Copiloto Pedagógico
         </h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 32 }}>
+        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 32, textAlign: 'center' }}>
           Ingresá con tu cuenta Ceibal
         </p>
 
-        {error && (
-          <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 16 }}>{error}</p>
-        )}
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="usuario@ceibal.edu.uy"
+              required
+              autoComplete="email"
+              style={inputStyle}
+            />
+          </div>
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Contraseña</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+              style={inputStyle}
+            />
+          </div>
+
+          {error && (
+            <p style={{ fontSize: 13, color: '#dc2626', margin: 0 }}>{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '13px',
+              borderRadius: 10,
+              background: loading ? '#9ca3af' : '#00b89c',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: 15,
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginTop: 4,
+            }}
+          >
+            <HiLockClosed size={18} />
+            {loading ? 'Iniciando...' : 'Ingresar'}
+          </button>
+        </form>
+
+        <p
           style={{
-            width: '100%',
-            padding: '13px',
-            borderRadius: 10,
-            background: loading ? '#9ca3af' : '#00b89c',
-            color: '#fff',
-            fontWeight: 600,
-            fontSize: 15,
-            border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: 12,
+            color: '#9ca3af',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 10,
-            marginBottom: 16,
+            gap: 6,
+            marginTop: 20,
           }}
         >
-          <HiLockClosed size={18} />
-          {loading ? 'Iniciando...' : 'Iniciar sesión'}
-        </button>
-
-        <p style={{ fontSize: 12, color: '#9ca3af', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <HiLockClosed size={13} />
           Acceso mediante Single Sign-On Institucional
         </p>
       </div>
 
-      {/* Footer */}
       <div
         style={{
           position: 'absolute',

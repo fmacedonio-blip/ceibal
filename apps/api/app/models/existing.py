@@ -52,6 +52,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True, index=True)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     average = Column(Float, nullable=False, default=0.0)
     tasks_completed = Column(Integer, nullable=False, default=0)

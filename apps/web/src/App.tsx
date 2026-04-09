@@ -17,7 +17,6 @@ import { CorreccionEscritura } from './pages/alumno/CorreccionEscritura/Correcci
 import { CorreccionLectura } from './pages/alumno/CorreccionLectura/CorreccionLectura';
 import { ChatCopiloto } from './pages/alumno/ChatCopiloto/ChatCopiloto';
 
-
 export default function App() {
   return (
     <BrowserRouter>
