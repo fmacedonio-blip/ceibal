@@ -60,6 +60,29 @@ ALLOWED_AUDIO_TYPES = {
 SUPPORTED_GRADES = {3, 4, 5, 6}
 
 
+async def _get_activity_context(activity_id: int) -> tuple[str | None, str | None]:
+    """Look up an Activity by ID and return (description, evaluation_criteria).
+
+    Uses a sync session (same approach as _link_activity) since the Activity
+    model lives on the sync ORM.  Returns (None, None) if not found.
+    """
+    import asyncio
+    from app.database import SessionLocal
+    from app.models.existing import Activity
+
+    def _fetch() -> tuple[str | None, str | None]:
+        db_sync = SessionLocal()
+        try:
+            activity = db_sync.query(Activity).filter(Activity.id == activity_id).first()
+            if activity is None:
+                return None, None
+            return activity.description, activity.evaluation_criteria
+        finally:
+            db_sync.close()
+
+    return await asyncio.to_thread(_fetch)
+
+
 @router.post("/submissions/analyze", response_model=SubmissionAnalyzeResponse, tags=["submissions"])
 async def analyze_submission(
     file: UploadFile = File(...),
@@ -78,8 +101,18 @@ async def analyze_submission(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    # Look up the Activity to get the teacher's consigna and evaluation criteria
+    consigna: str | None = None
+    evaluation_criteria: str | None = None
+    if activity_id is not None:
+        consigna, evaluation_criteria = await _get_activity_context(activity_id)
+
     try:
-        output = await hw_service.analyze(image_bytes, file.content_type, grade)
+        output = await hw_service.analyze(
+            image_bytes, file.content_type, grade,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
+        )
     except HandwriteAnalyzeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -124,6 +157,12 @@ async def analyze_submission_aws(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    # Look up the Activity to get the teacher's consigna and evaluation criteria
+    consigna: str | None = None
+    evaluation_criteria: str | None = None
+    if activity_id is not None:
+        consigna, evaluation_criteria = await _get_activity_context(activity_id)
+
     # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
     try:
         s3_key, _ = upload_file(image_bytes, file.content_type, filename=file.filename or "image.jpg")
@@ -139,6 +178,8 @@ async def analyze_submission_aws(
             curso=grade,
             modelo=modelo,
             s3_key=s3_key,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
         )
     except HandwriteAnalyzeAwsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

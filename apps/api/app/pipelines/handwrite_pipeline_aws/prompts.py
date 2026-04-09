@@ -41,7 +41,14 @@ Recibirás una imagen del cuaderno del alumno junto con su curso escolar y el bl
 - Priorizá como errores más relevantes los contenidos ya consolidados para el tramo.
 - Si algo todavía está en desarrollo, mencionalo en `explicacion_docente`.
 
-## PARTE 2 — Síntesis y feedback pedagógico
+## PARTE 2 — Evaluación de Consigna y Feedback Pedagógico
+
+### Evaluación de la consigna (si se proporcionó)
+Si se incluye la consigna del docente en el mensaje del usuario, evaluá si el texto del alumno la cumple (tema, restricciones, criterios).
+Si NO la cumplió:
+- Mencionalo cálidamente en `feedback_inicial`.
+- Incluilo en `puntos_de_mejora` con tipo `consigna_no_cumplida`.
+- Anotalo en `razonamiento_docente`.
 
 Con el análisis visual completado, generá el output final para alumno y docente.
 
@@ -146,6 +153,13 @@ La transcripción ya está hecha. Copiala textualmente en el campo `transcripcio
 
 ## PARTE 2 — Síntesis y feedback pedagógico
 
+### Evaluación de la consigna (si se proporcionó)
+Si se incluye la consigna del docente en el mensaje del usuario, evaluá si el texto del alumno la cumple (tema, restricciones, criterios).
+Si NO la cumplió:
+- Mencionalo cálidamente en `feedback_inicial`.
+- Incluilo en `puntos_de_mejora` con tipo `consigna_no_cumplida`.
+- Anotalo en `razonamiento_docente`.
+
 ### Agrupación de errores
 Agrupá todos los errores por `error_type`. Si el mismo tipo aparece varias veces, usá un solo objeto con `ocurrencias` igual al número de ocurrencias.
 
@@ -208,6 +222,9 @@ def build_user_message(
     imagen_data_url: str,
     curso: int,
     bloque_curricular: dict[str, Any],
+    *,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> list[dict[str, Any]]:
     """
     Build the multimodal user message for a single gateway call (vision path).
@@ -219,12 +236,20 @@ def build_user_message(
         "focos_docentes": bloque_curricular.get("focos_docentes", []),
         "ejes": bloque_curricular.get("ejes", {}),
     }
+    
+    consigna_section = ""
+    if consigna:
+        consigna_section += f"\n## Consigna del docente\n\n{consigna}\n"
+    if evaluation_criteria:
+        consigna_section += f"\n## Criterios de evaluación del docente\n\n{evaluation_criteria}\n"
+
     text_context = (
         f"## Alumno\n"
         f"- Curso: {bloque_curricular.get('curso_label', f'{curso}°')}\n"
         f"- Tramo curricular: {bloque_curricular.get('tramo_label', bloque_curricular.get('tramo_curricular', ''))}\n\n"
         f"## Bloque curricular esperado\n\n"
-        f"{json.dumps(bloque_compacto, ensure_ascii=False, indent=2)}\n\n"
+        f"{json.dumps(bloque_compacto, ensure_ascii=False, indent=2)}\n"
+        f"{consigna_section}\n"
         f"Analizá la imagen del cuaderno del alumno y generá el JSON de análisis y feedback."
     )
     return [
@@ -237,6 +262,9 @@ def build_user_message_text(
     transcripcion: str,
     curso: int,
     bloque_curricular: dict[str, Any],
+    *,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> str:
     """
     Build a plain-string user message when the transcription is provided directly.
@@ -248,12 +276,20 @@ def build_user_message_text(
         "focos_docentes": bloque_curricular.get("focos_docentes", []),
         "ejes": bloque_curricular.get("ejes", {}),
     }
+
+    consigna_section = ""
+    if consigna:
+        consigna_section += f"\n## Consigna del docente\n\n{consigna}\n"
+    if evaluation_criteria:
+        consigna_section += f"\n## Criterios de evaluación del docente\n\n{evaluation_criteria}\n"
+
     return (
         f"## Alumno\n"
         f"- Curso: {bloque_curricular.get('curso_label', f'{curso}°')}\n"
         f"- Tramo curricular: {bloque_curricular.get('tramo_label', bloque_curricular.get('tramo_curricular', ''))}\n\n"
         f"## Bloque curricular esperado\n\n"
-        f"{json.dumps(bloque_compacto, ensure_ascii=False, indent=2)}\n\n"
+        f"{json.dumps(bloque_compacto, ensure_ascii=False, indent=2)}\n"
+        f"{consigna_section}\n"
         f"## Texto del alumno\n\n"
         f"{transcripcion}\n\n"
         f"Analizá este texto y generá el JSON. "

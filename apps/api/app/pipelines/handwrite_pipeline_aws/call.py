@@ -103,7 +103,11 @@ def call1(
     except Exception as e:
         raise RuntimeError(f"Call 1 falló con modelo '{session.model}': {e}") from e
 
-    logger.info("Call 1 raw (%d chars): %s", len(raw), raw[:200])
+    print("\n" + "="*60)
+    print("🤖 MODEL RAW RESPONSE (AWS HANDWRITE CALL 1):")
+    print("="*60)
+    print(raw)
+    print("="*60 + "\n")
 
     if not _looks_like_json(raw):
         raise RuntimeError(
@@ -139,6 +143,8 @@ def call2(
     output_call1: OutputCall1,
     curso: int,
     conocimiento_curricular: dict[str, Any],
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> OutputFinal:
     """
     Second gateway call: group errors + generate pedagogical feedback.
@@ -147,7 +153,10 @@ def call2(
     Returns the final OutputFinal with grouped errors and teacher/student feedback.
     """
     bloque_curricular = get_curriculum_block(curso, conocimiento_curricular)
-    user_content = build_user_message_call2(output_call1.model_dump(), curso, bloque_curricular)
+    user_content = build_user_message_call2(
+        output_call1.model_dump(), curso, bloque_curricular,
+        consigna=consigna, evaluation_criteria=evaluation_criteria,
+    )
 
     logger.info("Call 2 | modelo=%s errores_call1=%d", session.model, len(output_call1.errores_detectados))
 
@@ -160,7 +169,11 @@ def call2(
     except Exception as e:
         raise RuntimeError(f"Call 2 falló con modelo '{session.model}': {e}") from e
 
-    logger.info("Call 2 respuesta raw (%d chars): %s", len(raw), raw[:200])
+    print("\n" + "="*60)
+    print("🤖 MODEL RAW RESPONSE (AWS HANDWRITE CALL 2):")
+    print("="*60)
+    print(raw)
+    print("="*60 + "\n")
 
     data = _parse_json(raw, "Call 2", session.model)
 
