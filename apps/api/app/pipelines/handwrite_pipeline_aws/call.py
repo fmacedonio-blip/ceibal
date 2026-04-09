@@ -103,11 +103,7 @@ def call1(
     except Exception as e:
         raise RuntimeError(f"Call 1 falló con modelo '{session.model}': {e}") from e
 
-    print("\n" + "="*60)
-    print("🤖 MODEL RAW RESPONSE (AWS HANDWRITE CALL 1):")
-    print("="*60)
-    print(raw)
-    print("="*60 + "\n")
+    logger.info("Call 1 raw (%d chars): %s", len(raw), raw[:200])
 
     if not _looks_like_json(raw):
         raise RuntimeError(
@@ -169,11 +165,7 @@ def call2(
     except Exception as e:
         raise RuntimeError(f"Call 2 falló con modelo '{session.model}': {e}") from e
 
-    print("\n" + "="*60)
-    print("🤖 MODEL RAW RESPONSE (AWS HANDWRITE CALL 2):")
-    print("="*60)
-    print(raw)
-    print("="*60 + "\n")
+    logger.info("Call 2 raw (%d chars): %s", len(raw), raw[:200])
 
     data = _parse_json(raw, "Call 2", session.model)
 
