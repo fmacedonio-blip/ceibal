@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_docente
 from app.database import get_db
 from app.models import Activity, AiDiagnosis, Course, Student, User
 from app.services import diagnosis_service
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/v1", tags=["students"])
 @router.get("/students/{student_id}")
 def get_student(
     student_id: int,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     student = db.query(Student).filter(Student.id == student_id).first()
@@ -67,7 +67,7 @@ def get_student(
 @router.post("/students/{student_id}/generate-diagnosis")
 def generate_diagnosis(
     student_id: int,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     student = db.query(Student).filter(Student.id == student_id).first()

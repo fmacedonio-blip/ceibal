@@ -2,7 +2,9 @@ import uuid
 
 from fastapi import APIRouter, Depends
 
+from app.auth.dependencies import require_alumno
 from app.database_async import get_async_db
+from app.models import User
 from app.schemas.chat import (
     ChatHistoryResponse,
     ChatMessageRequest,
@@ -18,6 +20,7 @@ router = APIRouter(prefix="/api/v1", tags=["chat"])
 @router.post("/submissions/{submission_id}/chat/start", response_model=ChatStartResponse, tags=["chat"])
 async def start_chat(
     submission_id: uuid.UUID,
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> ChatStartResponse:
     return await chat_service.start_session(db, submission_id)
@@ -27,6 +30,7 @@ async def start_chat(
 async def send_message(
     session_id: uuid.UUID,
     body: ChatMessageRequest,
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> ChatMessageResponse:
     return await chat_service.send_message(db, session_id, body.content)
@@ -35,6 +39,7 @@ async def send_message(
 @router.get("/submissions/{submission_id}/chat-session", tags=["chat"])
 async def get_chat_session(
     submission_id: uuid.UUID,
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> dict:
     """Returns the active chat session for a submission, or {exists: false} if none."""
@@ -52,6 +57,7 @@ async def get_chat_session(
 @router.get("/chat/{session_id}/history", response_model=ChatHistoryResponse, tags=["chat"])
 async def get_history(
     session_id: uuid.UUID,
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> ChatHistoryResponse:
     return await chat_service.get_history(db, session_id)
