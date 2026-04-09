@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { HiArrowLeft, HiPaperAirplane } from 'react-icons/hi2';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HiHome, HiPaperAirplane } from 'react-icons/hi2';
 import { getChatHistory, getChatSession, sendChatMessage, startChat } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
 import { Avatar } from '../../../components/Avatar/Avatar';
@@ -13,6 +13,7 @@ interface Message {
 export function ChatCopiloto() {
   const { submissionId } = useParams<{ submissionId: string }>();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -20,6 +21,7 @@ export function ChatCopiloto() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!submissionId) return;
@@ -34,23 +36,14 @@ export function ChatCopiloto() {
     if (!submissionId) return;
     try {
       const sessionCheck = await getChatSession(submissionId);
-
       if (!sessionCheck.exists || !sessionCheck.session_id) {
-        // No session yet — start one (generates first socratic message)
         const started = await startChat(submissionId);
         setMessages([{ role: 'assistant', content: started.first_message.content }]);
         setSessionId(started.session_id);
         return;
       }
-
-      // Session exists — load its history
       const history = await getChatHistory(sessionCheck.session_id);
-      setMessages(
-        history.messages.map((m) => ({
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        })),
-      );
+      setMessages(history.messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })));
       setSessionId(sessionCheck.session_id);
     } catch {
       setError('No se pudo cargar el chat. Intentá de nuevo más tarde.');
@@ -63,6 +56,7 @@ export function ChatCopiloto() {
     if (!input.trim() || !sessionId || sending) return;
     const userMsg = input.trim();
     setInput('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     setMessages((prev) => [...prev, { role: 'user', content: userMsg }]);
     setSending(true);
     try {
@@ -76,75 +70,86 @@ export function ChatCopiloto() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
+  const canSend = !!input.trim() && !sending && !!sessionId;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px - 64px)' }}>
-      {/* Top bar */}
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Link
-          to="/alumno/inicio"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13, textDecoration: 'none' }}
-        >
-          <HiArrowLeft size={14} /> Inicio
-        </Link>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00b89c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: '#fff', fontSize: 16 }}>✦</span>
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>Copiloto</div>
-            <div style={{ fontSize: 11, color: '#9ca3af' }}>Tu asistente de aprendizaje</div>
-          </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 68px)', margin: '-36px -24px 0', padding: '0' }}>
+
+      {/* Header */}
+      <div style={{
+        padding: '28px 24px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <p style={{ fontSize: 12, color: '#4a5565', fontWeight: 500, marginBottom: 2 }}>Charlemos de tu tarea</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#009689', display: 'flex', alignItems: 'center', gap: 6 }}>
+            ✨ Mi Copiloto
+          </h1>
         </div>
+        <button
+          onClick={() => navigate('/alumno/inicio')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 16px', borderRadius: 999,
+            border: '1.5px solid #e5e7eb', background: 'rgba(255,255,255,0.85)',
+            color: '#374151', fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <HiHome size={16} /> Volver al inicio
+        </button>
       </div>
 
       {/* Messages */}
-      <div style={{
-        flex: 1, overflowY: 'auto',
-        background: '#fff', borderRadius: 16,
-        padding: '20px', marginBottom: 12,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-        display: 'flex', flexDirection: 'column', gap: 16,
-      }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {loading && (
-          <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: 14, marginTop: 40 }}>
+          <div style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginTop: 60 }}>
             Conectando con el Copiloto...
           </div>
         )}
-
         {error && (
-          <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, marginTop: 40 }}>{error}</div>
+          <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, marginTop: 60 }}>{error}</div>
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
+          <div key={i} style={{
+            display: 'flex', gap: 10, alignItems: 'flex-end',
+            flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+          }}>
             {/* Avatar */}
             <div style={{ flexShrink: 0 }}>
               {msg.role === 'assistant' ? (
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00b89c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#fff', fontSize: 14 }}>✦</span>
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #00bba7, #00b8db)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0,187,167,0.4)',
+                }}>
+                  <span style={{ color: '#fff', fontSize: 16 }}>✦</span>
                 </div>
               ) : (
-                <Avatar name={user?.name ?? 'A'} size={32} fontSize={12} />
+                <Avatar name={user?.name ?? 'A'} size={34} fontSize={12} />
               )}
             </div>
 
             {/* Bubble */}
             <div style={{
-              maxWidth: '72%',
+              maxWidth: '70%',
               padding: '12px 16px',
-              borderRadius: msg.role === 'user' ? '16px 4px 16px 16px' : '4px 16px 16px 16px',
-              background: msg.role === 'user' ? '#00b89c' : '#f3f4f6',
-              color: msg.role === 'user' ? '#fff' : '#111827',
-              fontSize: 14,
-              lineHeight: 1.6,
+              borderRadius: msg.role === 'user' ? '18px 4px 18px 18px' : '4px 18px 18px 18px',
+              background: msg.role === 'user'
+                ? 'rgba(255,255,255,0.9)'
+                : 'linear-gradient(135deg, #00bba7, #00b8db)',
+              color: msg.role === 'user' ? '#1e2939' : '#fff',
+              fontSize: 15,
+              lineHeight: 1.65,
               whiteSpace: 'pre-wrap',
+              boxShadow: msg.role === 'user'
+                ? '0 2px 8px rgba(0,0,0,0.07)'
+                : '0 2px 10px rgba(0,187,167,0.3)',
             }}>
               {msg.content}
             </div>
@@ -152,12 +157,21 @@ export function ChatCopiloto() {
         ))}
 
         {sending && (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00b89c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: '#fff', fontSize: 14 }}>✦</span>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #00bba7, #00b8db)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 6px rgba(0,187,167,0.4)',
+            }}>
+              <span style={{ color: '#fff', fontSize: 16 }}>✦</span>
             </div>
-            <div style={{ padding: '12px 16px', borderRadius: '4px 16px 16px 16px', background: '#f3f4f6' }}>
-              <span style={{ color: '#9ca3af', fontSize: 14 }}>Pensando...</span>
+            <div style={{
+              padding: '12px 18px', borderRadius: '4px 18px 18px 18px',
+              background: 'linear-gradient(135deg, #00bba7, #00b8db)',
+              boxShadow: '0 2px 10px rgba(0,187,167,0.3)',
+            }}>
+              <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 20, letterSpacing: 3 }}>···</span>
             </div>
           </div>
         )}
@@ -166,18 +180,26 @@ export function ChatCopiloto() {
       </div>
 
       {/* Input */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+      <div style={{
+        padding: '8px 24px 32px',
+        display: 'flex', gap: 10, alignItems: 'flex-end',
+      }}>
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Escribí tu pregunta..."
+          placeholder="Texto a enviar"
           rows={1}
           style={{
-            flex: 1, resize: 'none', padding: '12px 16px',
-            borderRadius: 12, border: '1px solid #d1d5db',
-            fontSize: 14, fontFamily: 'inherit',
+            flex: 1, resize: 'none',
+            padding: '12px 18px',
+            borderRadius: 999,
+            border: '1.5px solid #e5e7eb',
+            background: 'rgba(255,255,255,0.9)',
+            fontSize: 15, fontFamily: 'inherit',
             outline: 'none', lineHeight: 1.5,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
           }}
           onInput={(e) => {
             const el = e.currentTarget;
@@ -187,15 +209,19 @@ export function ChatCopiloto() {
         />
         <button
           onClick={handleSend}
-          disabled={!input.trim() || sending || !sessionId}
+          disabled={!canSend}
           style={{
-            padding: '12px 16px', borderRadius: 12, border: 'none',
-            background: !input.trim() || sending ? '#d1d5db' : '#00b89c',
-            color: '#fff', cursor: !input.trim() || sending ? 'not-allowed' : 'pointer',
-            flexShrink: 0,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '12px 20px', borderRadius: 999, border: 'none',
+            background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+            color: '#fff', fontSize: 15, fontWeight: 600,
+            cursor: canSend ? 'pointer' : 'not-allowed',
+            opacity: canSend ? 1 : 0.5,
+            flexShrink: 0, fontFamily: 'inherit',
+            boxShadow: canSend ? '0 4px 10px rgba(0,184,219,0.35)' : 'none',
           }}
         >
-          <HiPaperAirplane size={18} />
+          <HiPaperAirplane size={16} /> Enviar
         </button>
       </div>
     </div>

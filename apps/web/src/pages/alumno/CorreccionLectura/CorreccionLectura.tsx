@@ -1,144 +1,30 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  HiChatBubbleLeftRight, HiHome, HiLightBulb, HiExclamationCircle, HiCheckCircle,
-  HiPause, HiLanguage, HiClock, HiScissors, HiBolt,
-  HiArrowPath, HiChevronDoubleRight, HiArrowUturnRight, HiSpeakerWave,
-  HiMicrophone, HiBookOpen, HiStar,
+  HiChatBubbleLeftRight, HiHome, HiLightBulb, HiStar,
 } from 'react-icons/hi2';
 import { getCorrection } from '../../../api/alumno';
 import type { AudioCorrectionAlumno, AudioCorrectionErrorAlumno } from '../../../types/alumno';
 
-/* ---------- fluency alert labels for students ---------- */
-
-const ALERTA_FLUIDEZ_INFO: Record<string, { icon: React.ReactNode; title: string; tip: string }> = {
-  no_respeta_pausas: {
-    icon: <HiPause size={20} />,
-    title: 'Pausas y puntuación',
-    tip: 'Cuando ves un punto (.) o una coma (,), hacé una pausa cortita antes de seguir. Es como tomar aire.',
-  },
-  dificultad_polisilabas: {
-    icon: <HiLanguage size={20} />,
-    title: 'Palabras largas',
-    tip: 'Algunas palabras largas te costaron un poco. ¡Practicá dividiéndolas en sílabas antes de leerlas completas!',
-  },
-  lectura_palabra_por_palabra: {
-    icon: <HiClock size={20} />,
-    title: 'Lectura palabra por palabra',
-    tip: 'Intentá juntar las palabras en grupos, como si estuvieras hablando. Eso hace que la lectura suene más natural.',
-  },
-  silabeo: {
-    icon: <HiScissors size={20} />,
-    title: 'Lectura en sílabas',
-    tip: 'En vez de separar las sílabas (car-pin-cho), tratá de decir la palabra entera de corrido: carpincho.',
-  },
-  velocidad_alta_con_errores: {
-    icon: <HiBolt size={20} />,
-    title: 'Velocidad alta',
-    tip: 'Leíste rápido pero con algunos errores. Intentá bajar un poquito la velocidad para leer más seguro.',
-  },
+const ALERTA_FLUIDEZ_INFO: Record<string, { title: string; tip: string }> = {
+  no_respeta_pausas:          { title: 'Pausas y puntuación',        tip: 'Cuando ves un punto o una coma, hacé una pausa cortita antes de seguir.' },
+  dificultad_polisilabas:     { title: 'Palabras largas',            tip: '¡Practicá dividiéndolas en sílabas antes de leerlas completas!' },
+  lectura_palabra_por_palabra:{ title: 'Lectura palabra por palabra', tip: 'Intentá juntar las palabras en grupos para que suene más natural.' },
+  silabeo:                    { title: 'Lectura en sílabas',         tip: 'En vez de separar las sílabas, tratá de decir la palabra entera de corrido.' },
+  velocidad_alta_con_errores: { title: 'Velocidad alta',             tip: 'Leíste rápido pero con algunos errores. Bajá un poquito la velocidad.' },
 };
 
-/* ---------- per-type styling ---------- */
 
-const TIPO_CONFIG: Record<string, { label: string; icon: React.ReactNode; borderColor: string; bgColor: string; textColor: string }> = {
-  sustitucion: {
-    label: 'Leíste una palabra diferente',
-    icon: <HiArrowPath size={13} />,
-    borderColor: '#fbbf24',
-    bgColor: '#fffbeb',
-    textColor: '#92400e',
-  },
-  omision: {
-    label: 'Te saltaste una palabra',
-    icon: <HiChevronDoubleRight size={13} />,
-    borderColor: '#60a5fa',
-    bgColor: '#eff6ff',
-    textColor: '#1e40af',
-  },
-  repeticion: {
-    label: 'Repetiste una palabra',
-    icon: <HiArrowUturnRight size={13} />,
-    borderColor: '#fb923c',
-    bgColor: '#fff7ed',
-    textColor: '#9a3412',
-  },
-  pronunciacion: {
-    label: 'Pronunciaste diferente',
-    icon: <HiSpeakerWave size={13} />,
-    borderColor: '#a78bfa',
-    bgColor: '#f5f3ff',
-    textColor: '#5b21b6',
-  },
-  autocorreccion: {
-    label: '¡Te corregiste solo!',
-    icon: <HiCheckCircle size={13} />,
-    borderColor: '#4ade80',
-    bgColor: '#f0fdf4',
-    textColor: '#166534',
-  },
-};
-
-const DEFAULT_CONFIG = TIPO_CONFIG.sustitucion;
-
-function ErrorCard({ err, index }: { err: AudioCorrectionErrorAlumno; index: number }) {
-  const cfg = TIPO_CONFIG[err.tipo] ?? DEFAULT_CONFIG;
+function ErrorCard({ err }: { err: AudioCorrectionErrorAlumno }) {
   const isPositive = err.tipo === 'autocorreccion';
-
   return (
-    <div
-      key={index}
-      style={{
-        background: cfg.bgColor,
-        borderRadius: 10,
-        padding: '14px 16px',
-        borderLeft: `3px solid ${cfg.borderColor}`,
-      }}
-    >
-      {/* Type badge */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 5,
-        fontSize: 11, fontWeight: 700, color: cfg.textColor,
-        background: `${cfg.borderColor}33`, borderRadius: 6,
-        padding: '2px 8px', marginBottom: 8,
-      }}>
-        {cfg.icon} {cfg.label}
-      </div>
-
-      {/* Main error description */}
+    <div style={{ background: '#fff', borderRadius: 10, padding: '14px 16px', borderLeft: `3px solid ${isPositive ? '#4ade80' : '#fb923c'}` }}>
       <div style={{ fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: 4, lineHeight: 1.5 }}>
-        {err.tipo === 'sustitucion' && err.lo_que_leyo && (
-          <>Dijiste <span style={{ color: '#dc2626' }}>"{err.lo_que_leyo}"</span> en vez de <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
-        )}
-        {err.tipo === 'pronunciacion' && err.lo_que_leyo && (
-          <>Dijiste <span style={{ color: '#7c3aed' }}>"{err.lo_que_leyo}"</span> pero se pronuncia <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
-        )}
-        {err.tipo === 'pronunciacion' && !err.lo_que_leyo && (
-          <>Pronunciaste diferente la palabra <span style={{ color: '#7c3aed' }}>"{err.palabra_original}"</span></>
-        )}
-        {err.tipo === 'omision' && (
-          <>Se te pasó la palabra <span style={{ color: '#2563eb' }}>"{err.palabra_original}"</span></>
-        )}
-        {err.tipo === 'repeticion' && (
-          <>Repetiste <span style={{ color: '#ea580c' }}>"{err.palabra_original}"</span></>
-        )}
-        {err.tipo === 'autocorreccion' && (
-          <>Te trabaste en <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span> pero lo corregiste</>
-        )}
-        {!['sustitucion', 'pronunciacion', 'omision', 'repeticion', 'autocorreccion'].includes(err.tipo) && err.lo_que_leyo && (
-          <>Dijiste <span style={{ color: '#dc2626' }}>"{err.lo_que_leyo}"</span> en vez de <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
-        )}
-        {!['sustitucion', 'pronunciacion', 'omision', 'repeticion', 'autocorreccion'].includes(err.tipo) && !err.lo_que_leyo && (
-          <>Palabra: <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
-        )}
+        {err.lo_que_leyo
+          ? <><span style={{ color: '#dc2626' }}>"{err.lo_que_leyo}"</span> → <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
+          : <span style={{ color: '#374151' }}>"{err.palabra_original}"</span>}
       </div>
-
-      {/* Explanation from AI */}
-      {err.explicacion && (
-        <div style={{ fontSize: 13, color: isPositive ? '#166534' : '#6b7280', lineHeight: 1.5, marginTop: 2 }}>
-          {err.explicacion}
-        </div>
-      )}
+      {err.explicacion && <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>{err.explicacion}</div>}
     </div>
   );
 }
@@ -167,8 +53,8 @@ export function CorreccionLectura() {
   }, [submissionId]);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <HiMicrophone size={16} /> Analizando tu lectura...
+    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15 }}>
+      Analizando tu lectura...
     </div>
   );
 
@@ -179,136 +65,122 @@ export function CorreccionLectura() {
     </div>
   );
 
-  const realErrors = alumno.errores.filter((e) => e.tipo !== 'autocorreccion');
-  const autoCorrections = alumno.errores.filter((e) => e.tipo === 'autocorreccion');
+  const realErrors = alumno.errores.filter(e => e.tipo !== 'autocorreccion');
+  const autoCorrections = alumno.errores.filter(e => e.tipo === 'autocorreccion');
+  const alertas = alumno.alertas_fluidez ?? [];
 
   return (
-    <div>
+    <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
       {/* Header */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-          <HiMicrophone size={14} color="#16a34a" />
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', letterSpacing: '0.08em' }}>
-            CORRECCIÓN DE LECTURA
-          </span>
-        </div>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>¡Mirá tu corrección!</h1>
+      <div style={{ textAlign: 'center', marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#009689', marginBottom: 6 }}>
+          ¡Escuché tu lectura! 🎧
+        </h1>
+        <p style={{ fontSize: 15, color: '#4a5565' }}>Hiciste un gran trabajo leyendo hoy.</p>
       </div>
 
-      {/* Feedback */}
+      {/* Feedback de la IA */}
       <div style={{
-        background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-        borderRadius: 16, padding: '24px 28px',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20,
-        border: '1px solid #bbf7d0',
+        background: 'rgba(255,255,255,0.9)',
+        borderRadius: 16, padding: '20px 24px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
       }}>
-        <p style={{ fontSize: 16, color: '#166534', lineHeight: 1.7, fontWeight: 500 }}>
+        <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.7, margin: 0 }}>
           {alumno.feedback}
         </p>
       </div>
 
-      {/* Autocorrections */}
-      {autoCorrections.length > 0 && (
-        <div style={{ background: '#f0fdf4', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #bbf7d0' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#166534', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <HiCheckCircle size={18} color="#16a34a" /> ¡Bien hecho! Te corregiste solo
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {autoCorrections.map((err, i) => <ErrorCard key={`auto-${i}`} err={err} index={i} />)}
-          </div>
-        </div>
+      {/* ¡Muy bien! — feedback positivo */}
+      {alumno.consejos.length > 0 || autoCorrections.length > 0 ? (
+        <Card bg="#ccfbf1" border="#6ee7b7">
+          <Title icon="✅" color="#065f46">¡Muy bien!</Title>
+          {autoCorrections.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 8 }}>
+              {autoCorrections.map((err, i) => <ErrorCard key={i} err={err} />)}
+            </div>
+          )}
+          {alumno.consejos.slice(0, 2).map((c, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#065f46', lineHeight: 1.5, marginBottom: 4 }}>
+              <span>•</span><span>{c}</span>
+            </div>
+          ))}
+        </Card>
+      ) : (
+        alumno.errores.length === 0 && (
+          <Card bg="#ccfbf1" border="#6ee7b7">
+            <div style={{ textAlign: 'center' }}>
+              <HiStar size={40} color="#065f46" style={{ marginBottom: 8 }} />
+              <p style={{ fontSize: 18, fontWeight: 700, color: '#065f46' }}>¡Lectura perfecta!</p>
+              <p style={{ fontSize: 14, color: '#047857' }}>No se detectaron errores. ¡Seguí así!</p>
+            </div>
+          </Card>
+        )
       )}
 
-      {/* Real errors */}
-      {realErrors.length > 0 && (
-        <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <HiExclamationCircle size={18} color="#f59e0b" /> Palabras para repasar
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {realErrors.map((err, i) => <ErrorCard key={`err-${i}`} err={err} index={i} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Perfect read */}
-      {alumno.errores.length === 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
-          borderRadius: 16, padding: '28px', marginBottom: 20,
-          textAlign: 'center', border: '1px solid #a7f3d0',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: '#065f46' }}>
-            <HiStar size={40} />
-          </div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: '#065f46' }}>¡Lectura perfecta!</p>
-          <p style={{ fontSize: 14, color: '#047857' }}>No se detectaron errores. ¡Seguí así!</p>
-        </div>
-      )}
-
-      {/* Consejos de fluidez */}
-      {(alumno.alertas_fluidez ?? []).length > 0 && (
-        <div style={{ background: '#fefce8', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #fde68a' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <HiBookOpen size={18} color="#b45309" /> Aspectos de tu lectura
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(alumno.alertas_fluidez ?? []).map((alerta, i) => {
+      {/* Para seguir mejorando — alertas de fluidez */}
+      {alertas.length > 0 && (
+        <Card bg="#fef9c3" border="#fde68a">
+          <Title icon="🔊" color="#92400e">Para seguir mejorando 💪</Title>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {alertas.map((alerta, i) => {
               const info = ALERTA_FLUIDEZ_INFO[alerta];
               if (!info) return null;
               return (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10,
-                  background: '#fffef5', borderRadius: 10, padding: '12px 14px',
-                  borderLeft: '3px solid #facc15',
-                }}>
-                  <span style={{ color: '#b45309', flexShrink: 0, marginTop: 1 }}>{info.icon}</span>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#78350f', marginBottom: 2 }}>{info.title}</div>
-                    <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>{info.tip}</div>
-                  </div>
+                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#78350f', lineHeight: 1.5 }}>
+                  <span style={{ flexShrink: 0 }}>•</span>
+                  <span><strong>{info.title}:</strong> {info.tip}</span>
                 </div>
               );
             })}
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Consejos */}
-      {alumno.consejos.length > 0 && (
-        <div style={{ background: '#faf5ff', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 28 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <HiLightBulb size={18} color="#7c3aed" /> Consejos para la próxima
-          </h2>
-          <ul style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {alumno.consejos.map((c, i) => (
-              <li key={i} style={{ fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{c}</li>
-            ))}
-          </ul>
-        </div>
+      {/* Errores en pronunciación */}
+      {realErrors.length > 0 && (
+        <Card bg="#ffedd5" border="#fed7aa">
+          <Title icon="⏱" color="#9a3412">Errores en pronunciación</Title>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {realErrors.map((err, i) => <ErrorCard key={i} err={err} />)}
+          </div>
+        </Card>
       )}
 
-      {/* Actions */}
-      <div style={{ display: 'flex', gap: 12 }}>
+      {/* Consejos restantes */}
+      {alumno.consejos.length > 2 && (
+        <Card bg="#fae8ff" border="#e9d5ff">
+          <Title icon="💡" color="#7c3aed">Consejos para la próxima</Title>
+          {alumno.consejos.slice(2).map((c, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#374151', lineHeight: 1.5, marginBottom: 4 }}>
+              <HiLightBulb size={13} color="#7c3aed" style={{ flexShrink: 0, marginTop: 2 }} /><span>{c}</span>
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {/* Botones */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 6 }}>
         <button
           onClick={() => navigate(`/alumno/chat/${realSubmissionId}`)}
           style={{
-            flex: 1, padding: '14px', borderRadius: 12, border: 'none',
-            background: '#00b89c', color: '#fff',
-            fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            width: '100%', padding: '16px', borderRadius: 999, border: 'none',
+            background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+            color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 12px rgba(0,184,219,0.3)', fontFamily: 'inherit',
           }}
         >
-          <HiChatBubbleLeftRight size={18} /> Hablar con el Copiloto
+          <HiChatBubbleLeftRight size={18} /> Seguir charlando con mi Copiloto
         </button>
         <Link
           to="/alumno/inicio"
           style={{
-            flex: 1, padding: '14px', borderRadius: 12,
-            border: '1px solid #e5e7eb', background: '#fff',
-            fontSize: 15, fontWeight: 600, color: '#374151',
-            textDecoration: 'none',
+            width: '100%', padding: '14px', borderRadius: 999,
+            border: '1px solid #e5e7eb', background: 'rgba(255,255,255,0.8)',
+            fontSize: 15, fontWeight: 600, color: '#374151', textDecoration: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxSizing: 'border-box',
           }}
         >
           <HiHome size={18} /> Volver al inicio
@@ -317,3 +189,23 @@ export function CorreccionLectura() {
     </div>
   );
 }
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function Card({ bg, border, children }: { bg: string; border: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: 16, padding: '20px 24px' }}>
+      {children}
+    </div>
+  );
+}
+
+function Title({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      <span style={{ color, display: 'flex', alignItems: 'center', fontSize: 16 }}>{icon}</span>
+      <span style={{ fontSize: 15, fontWeight: 700, color }}>{children}</span>
+    </div>
+  );
+}
+

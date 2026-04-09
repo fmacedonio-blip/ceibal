@@ -68,6 +68,7 @@ def _link_activity(activity_id: int, submission_id: uuid.UUID) -> None:
             student = db_sync.query(Student).filter(Student.id == activity.student_id).first()
             if student is not None:
                 student.tasks_completed = (student.tasks_completed or 0) + 1
+                student.last_activity = activity.name
             db_sync.commit()
         except Exception:
             db_sync.rollback()

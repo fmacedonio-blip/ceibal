@@ -49,6 +49,8 @@ export function Dashboard() {
                 padding: '16px 20px',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                 borderLeft: `4px solid ${SEVERITY_COLOR[alert.severity]}`,
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
@@ -67,6 +69,8 @@ export function Dashboard() {
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
+                  marginTop: 'auto',
+                  alignSelf: 'flex-end',
                 }}
               >
                 VER DETALLE →

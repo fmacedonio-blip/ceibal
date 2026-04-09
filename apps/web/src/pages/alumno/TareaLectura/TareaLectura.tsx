@@ -1,11 +1,108 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { HiArrowLeft, HiMicrophone, HiStop, HiTrash, HiPaperAirplane } from 'react-icons/hi2';
+import { useNavigate, useParams } from 'react-router-dom';
+import { HiArrowLeft, HiMicrophone, HiStop, HiPlay, HiPause, HiTrash } from 'react-icons/hi2';
 import { getMe, getTasks, submitAudio } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
 import type { Task } from '../../../types/alumno';
 
 type Phase = 'idle' | 'recording' | 'recorded';
+
+function AudioPlayer({ url, onReset }: { url: string; onReset: () => void }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLSpanElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+
+  const fmt = (s: number) =>
+    `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+  function tick() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const pct = audio.duration > 0 ? (audio.currentTime / audio.duration) * 100 : 0;
+    if (barRef.current) barRef.current.style.width = `${pct}%`;
+    if (timeRef.current) timeRef.current.textContent =
+      `${fmt(audio.currentTime)}${audio.duration > 0 ? ` / ${fmt(audio.duration)}` : ''}`;
+    rafRef.current = requestAnimationFrame(tick);
+  }
+
+  function toggle() {
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      setPlaying(false);
+    } else {
+      audioRef.current.play();
+      rafRef.current = requestAnimationFrame(tick);
+      setPlaying(true);
+    }
+  }
+
+  function handleEnded() {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    setPlaying(false);
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(90deg, #ccfbf1, #cffafe)',
+      borderRadius: 999, padding: '10px 14px',
+      display: 'flex', alignItems: 'center', gap: 12,
+      boxShadow: '0 2px 8px rgba(0,184,156,0.15)',
+      width: '100%', maxWidth: 360,
+    }}>
+      <audio
+        ref={audioRef}
+        src={url}
+        onEnded={handleEnded}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
+        style={{ display: 'none' }}
+      />
+      <button
+        onClick={toggle}
+        style={{
+          width: 44, height: 44, borderRadius: '50%', border: 'none', flexShrink: 0,
+          background: '#00bba7', color: '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 6px rgba(0,187,167,0.4)',
+        }}
+      >
+        {playing ? <HiPause size={20} /> : <HiPlay size={20} />}
+      </button>
+
+      {/* Barra + tiempo superpuesto */}
+      <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
+        <div style={{ height: 6, background: 'rgba(0,0,0,0.1)', borderRadius: 999, overflow: 'hidden' }}>
+          <div ref={barRef} style={{ height: 6, width: '0%', background: '#00bba7', borderRadius: 999 }} />
+        </div>
+        <span
+          ref={timeRef}
+          style={{
+            position: 'absolute', top: 10, left: 0,
+            fontSize: 11, color: '#0d9488', fontVariantNumeric: 'tabular-nums',
+            pointerEvents: 'none',
+          }}
+        >
+          {duration > 0 ? `00:00 / ${fmt(duration)}` : '00:00'}
+        </span>
+      </div>
+
+      <button
+        onClick={onReset}
+        style={{
+          width: 36, height: 36, borderRadius: '50%', border: 'none', flexShrink: 0,
+          background: '#ef4444', color: '#fff', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <HiTrash size={16} />
+      </button>
+    </div>
+  );
+}
 
 export function TareaLectura() {
   const { taskId } = useParams<{ taskId: string }>();
@@ -84,14 +181,10 @@ export function TareaLectura() {
       const classUuid = me.course?.course_uuid ?? '';
       const gradeMatch = me.course?.name.match(/(\d+)/);
       const grade = gradeMatch ? parseInt(gradeMatch[1]) : 4;
-      // Use reading_text as texto_original; fall back to description/name
       const textoOriginal = task.reading_text ?? task.description ?? task.name;
-
       const result = await submitAudio(
         audioBlob, user.student_uuid, classUuid, grade,
-        textoOriginal, user.name,
-        Number(taskId),
-        elapsedRef.current, // pass elapsed so backend doesn't need to parse webm header
+        textoOriginal, user.name, Number(taskId), elapsedRef.current,
       );
       navigate(`/alumno/tarea/${taskId}/correccion-lectura`, {
         state: { submissionId: result.submission_id },
@@ -107,40 +200,61 @@ export function TareaLectura() {
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
+  const canSubmit = phase === 'recorded' && !uploading;
+
   if (!task) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando tarea...</p>;
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
-      <Link
-        to="/alumno/inicio"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13, textDecoration: 'none', marginBottom: 24 }}
-      >
-        <HiArrowLeft size={14} /> Volver al inicio
-      </Link>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640, margin: '0 auto' }}>
+      <style>{`
+        @keyframes pulse-ring {
+          0% { transform: scale(1); opacity: 0.6; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+      `}</style>
 
-      {/* Mission header */}
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: '0.1em', marginBottom: 6 }}>
+      {/* Header */}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#0e7490', letterSpacing: '0.1em', marginBottom: 6 }}>
           MISIÓN DE HOY
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827' }}>Lee este párrafo</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2939' }}>Lee este párrafo</h1>
       </div>
 
-      {/* Reading text card */}
+      {/* Card de texto — header rosa como lectura */}
       {task.reading_text && (
         <div style={{
-          background: '#fff', borderRadius: 16,
-          padding: '28px 32px', marginBottom: 24,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-          fontSize: 16, lineHeight: 1.8, color: '#374151',
-          textAlign: 'center',
+          background: 'rgba(255,255,255,0.9)',
+          borderRadius: 20,
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
         }}>
-          "{task.reading_text}"
+          <div style={{
+            background: 'linear-gradient(135deg, #e0f2fe, #cffafe)',
+            padding: '16px 24px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(255,255,255,0.6)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <HiMicrophone size={18} color="#0891b2" />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#0e7490', letterSpacing: '0.07em' }}>
+              TAREA DE LECTURA · {task.name}
+            </span>
+          </div>
+          <div style={{ padding: '24px 28px' }}>
+            <p style={{ fontSize: 16, lineHeight: 1.8, color: '#374151', textAlign: 'center', margin: 0 }}>
+              "{task.reading_text}"
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Instructions */}
-      <p style={{ textAlign: 'center', fontSize: 14, color: '#6b7280', marginBottom: 28 }}>
+      {/* Instrucción */}
+      <p style={{ textAlign: 'center', fontSize: 14, color: '#4a5565', margin: 0 }}>
         {phase === 'idle'
           ? 'Cuando estés listo, hacé clic en el micrófono'
           : phase === 'recording'
@@ -148,87 +262,93 @@ export function TareaLectura() {
           : '¡Grabación lista! Escuchala o grabá de nuevo.'}
       </p>
 
-      {/* Mic / recording controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, marginBottom: 28 }}>
+      {/* Controles grabación */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
 
-        {/* IDLE */}
         {phase === 'idle' && (
           <button
             onClick={startRecording}
             style={{
               width: 80, height: 80, borderRadius: '50%', border: 'none',
-              background: '#00b89c', color: '#fff',
+              background: '#00bba7', color: '#fff',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(0,184,156,0.35)',
+              boxShadow: '0 4px 16px rgba(0,187,167,0.4)',
+              transition: 'transform 0.15s',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <HiMicrophone size={32} />
+            <HiMicrophone size={34} />
           </button>
         )}
 
-        {/* RECORDING */}
         {phase === 'recording' && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', animation: 'pulse 1s infinite' }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
-                {formatTime(elapsed)}
-              </span>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {/* Pulse ring */}
+              <div style={{
+                position: 'absolute', width: 80, height: 80, borderRadius: '50%',
+                background: 'rgba(239,68,68,0.3)',
+                animation: 'pulse-ring 1.2s ease-out infinite',
+              }} />
+              <button
+                onClick={stopRecording}
+                style={{
+                  width: 80, height: 80, borderRadius: '50%', border: 'none',
+                  background: '#ef4444', color: '#fff',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 16px rgba(239,68,68,0.4)',
+                  position: 'relative', zIndex: 1,
+                }}
+              >
+                <HiStop size={32} />
+              </button>
             </div>
-            <button
-              onClick={stopRecording}
-              style={{
-                width: 80, height: 80, borderRadius: '50%', border: 'none',
-                background: '#dc2626', color: '#fff',
-                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(220,38,38,0.35)',
-              }}
-            >
-              <HiStop size={32} />
-            </button>
+            <span style={{ fontSize: 16, fontWeight: 700, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>
+              Grabando... {formatTime(elapsed)}
+            </span>
           </>
         )}
 
-        {/* RECORDED */}
         {phase === 'recorded' && audioUrl && (
-          <>
-            <audio src={audioUrl} controls style={{ width: '100%', maxWidth: 360, borderRadius: 8 }} />
-            <button
-              onClick={resetRecording}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '8px 16px', borderRadius: 8,
-                border: '1px solid #fecaca', background: '#fef2f2',
-                color: '#dc2626', fontSize: 13, cursor: 'pointer',
-              }}
-            >
-              <HiTrash size={14} /> Grabar de nuevo
-            </button>
-          </>
+          <AudioPlayer url={audioUrl} onReset={resetRecording} />
         )}
       </div>
 
       {error && (
-        <p style={{ fontSize: 13, color: '#dc2626', marginBottom: 16, textAlign: 'center' }}>{error}</p>
+        <p style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', margin: 0 }}>{error}</p>
       )}
 
-      {/* Send button — always visible, disabled until recorded */}
+      {/* Botón enviar */}
       <button
         onClick={handleSubmit}
-        disabled={phase !== 'recorded' || uploading}
+        disabled={!canSubmit}
         style={{
-          width: '100%', padding: '16px',
-          borderRadius: 14, border: 'none',
-          background: phase !== 'recorded' || uploading ? '#d1d5db' : '#00b89c',
-          color: phase !== 'recorded' || uploading ? '#9ca3af' : '#fff',
-          fontSize: 16, fontWeight: 700,
-          cursor: phase !== 'recorded' || uploading ? 'not-allowed' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          transition: 'background 0.2s',
+          width: '100%', padding: '15px',
+          borderRadius: 999, border: 'none',
+          background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+          color: '#fff', fontSize: 16, fontWeight: 700,
+          cursor: canSubmit ? 'pointer' : 'not-allowed',
+          opacity: canSubmit ? 1 : 0.45,
+          boxShadow: canSubmit ? '0 4px 12px rgba(0,184,219,0.35)' : 'none',
+          transition: 'opacity 0.2s',
+          fontFamily: 'inherit',
         }}
       >
-        <HiPaperAirplane size={18} />
-        {uploading ? 'Enviando y analizando...' : 'Enviar'}
+        {uploading ? 'Analizando tu lectura...' : 'Enviar'}
+      </button>
+
+      {/* Volver */}
+      <button
+        onClick={() => navigate('/alumno/inicio')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          color: '#6b7280', fontSize: 14, background: 'none',
+          border: 'none', cursor: 'pointer', padding: '8px 0',
+          fontFamily: 'inherit', width: '100%',
+        }}
+      >
+        <HiArrowLeft size={15} /> Volver al inicio
       </button>
     </div>
   );

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  HiChatBubbleLeftRight, HiHome, HiCheckCircle, HiSparkles,
-  HiClock, HiPencil, HiLightBulb, HiWrenchScrewdriver,
+  HiChatBubbleLeftRight, HiHome, HiCheckCircle,
+  HiLightBulb, HiWrenchScrewdriver,
 } from 'react-icons/hi2';
 import { getCorrection } from '../../../api/alumno';
 import type { WritingCorrectionAlumno } from '../../../types/alumno';
@@ -31,8 +31,8 @@ export function CorreccionEscritura() {
   }, [submissionId]);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-      <HiSparkles size={16} /> Analizando tu escritura...
+    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15 }}>
+      Analizando tu escritura...
     </div>
   );
 
@@ -44,110 +44,95 @@ export function CorreccionEscritura() {
   );
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
       {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111827', marginBottom: 6 }}>
+      <div style={{ textAlign: 'center', marginBottom: 6 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#009689', marginBottom: 6 }}>
           ¡Ya lo leí! Mirá lo que encontré
         </h1>
-        <p style={{ fontSize: 14, color: '#6b7280' }}>{alumno.feedback}</p>
+        <p style={{ fontSize: 15, color: '#4a5565' }}>{alumno.feedback}</p>
       </div>
 
       {/* Tu texto */}
       {alumno.transcripcion_html && (
-        <Section bg="#fff" borderColor="#e5e7eb">
-          <SectionTitle icon={<HiSparkles size={16} />} color="#374151">Tu texto</SectionTitle>
+        <Card bg="rgba(255,255,255,0.9)" border="#e5e7eb">
+          <Title icon="✨" color="#374151">Tu texto</Title>
           <div
             style={{ fontSize: 15, lineHeight: 2, color: '#374151' }}
             dangerouslySetInnerHTML={{ __html: alumno.transcripcion_html }}
           />
-          <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 8 }}>
+          <style>{`.hw-error { background: #fef9c2; border-radius: 2px; padding: 0 2px; }`}</style>
+          <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 8 }}>
             Las palabras resaltadas tienen algo para mejorar.
           </p>
-        </Section>
+        </Card>
       )}
 
       {/* Lo que está muy bien */}
       {alumno.aspectos_positivos.length > 0 && (
-        <Section bg="#e8faf5" borderColor="#6ee7b7">
-          <SectionTitle icon={<HiCheckCircle size={16} />} color="#065f46">Lo que está muy bien</SectionTitle>
-          <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {alumno.aspectos_positivos.map((item, i) => (
-              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#065f46', lineHeight: 1.5 }}>
-                <span style={{ flexShrink: 0 }}>•</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <Card bg="#ccfbf1" border="#6ee7b7">
+          <Title icon={<HiCheckCircle size={17} />} color="#065f46">Lo que está muy bien</Title>
+          <BulletList items={alumno.aspectos_positivos} color="#065f46" />
+        </Card>
       )}
 
       {/* Para seguir practicando */}
       {alumno.sugerencias_socraticas.length > 0 && (
-        <Section bg="#fefce8" borderColor="#fde68a">
-          <SectionTitle icon={<HiClock size={16} />} color="#92400e">Para seguir practicando</SectionTitle>
+        <Card bg="#fef9c3" border="#fde68a">
+          <Title icon="⏱" color="#92400e">Para seguir practicando 💪</Title>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {alumno.sugerencias_socraticas.map((q, i) => (
               <div key={i} style={{
                 background: '#fff', borderRadius: 10,
-                padding: '12px 16px', fontSize: 14, color: '#374151',
-                lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8,
+                padding: '12px 16px', fontSize: 14, color: '#374151', lineHeight: 1.5,
               }}>
-                {q.startsWith('¿') && <HiPencil size={14} style={{ flexShrink: 0, marginTop: 2, color: '#b45309' }} />}
-                <span>{q}</span>
+                {q}
               </div>
             ))}
           </div>
-        </Section>
+        </Card>
       )}
 
       {/* Cosas a corregir */}
       {alumno.errores.length > 0 && (
-        <Section bg="#fff7ed" borderColor="#fed7aa">
-          <SectionTitle icon={<HiWrenchScrewdriver size={16} />} color="#9a3412">Cosas a corregir</SectionTitle>
+        <Card bg="#ffedd5" border="#fed7aa">
+          <Title icon={<HiWrenchScrewdriver size={17} />} color="#9a3412">Cosas a corregir</Title>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {alumno.errores.map((err, i) => (
               <div key={i} style={{
                 background: '#fff', borderRadius: 8,
-                padding: '12px 16px',
-                borderLeft: '3px solid #fb923c',
+                padding: '12px 16px', borderLeft: '3px solid #fb923c',
               }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 4 }}>
                   "{err.texto}" → "{err.correccion}"
                 </div>
-                <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
-                  {err.explicacion}
-                </div>
+                <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>{err.explicacion}</div>
               </div>
             ))}
           </div>
-        </Section>
+        </Card>
       )}
 
-      {/* Consejos para la próxima */}
+      {/* Consejos */}
       {alumno.consejos.length > 0 && (
-        <Section bg="#fdf4ff" borderColor="#e9d5ff">
-          <SectionTitle icon={<HiLightBulb size={16} />} color="#7c3aed">Consejos para la próxima</SectionTitle>
-          <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {alumno.consejos.map((c, i) => (
-              <li key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#374151', lineHeight: 1.5 }}>
-                <HiLightBulb size={14} style={{ flexShrink: 0, marginTop: 2, color: '#7c3aed' }} />
-                <span>{c}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <Card bg="#fae8ff" border="#e9d5ff">
+          <Title icon={<HiLightBulb size={17} />} color="#7c3aed">Consejos para la próxima</Title>
+          <BulletList items={alumno.consejos} color="#374151" icon={<HiLightBulb size={13} color="#7c3aed" />} />
+        </Card>
       )}
 
-      {/* Actions */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+      {/* Botones */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 6 }}>
         <button
           onClick={() => navigate(`/alumno/chat/${realSubmissionId}`)}
           style={{
-            width: '100%', padding: '16px', borderRadius: 14, border: 'none',
-            background: '#00b89c', color: '#fff',
-            fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            width: '100%', padding: '16px', borderRadius: 999, border: 'none',
+            background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+            color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 12px rgba(0,184,219,0.3)',
+            fontFamily: 'inherit',
           }}
         >
           <HiChatBubbleLeftRight size={18} /> Seguir charlando con mi Copiloto
@@ -155,8 +140,8 @@ export function CorreccionEscritura() {
         <Link
           to="/alumno/inicio"
           style={{
-            width: '100%', padding: '14px', borderRadius: 14,
-            border: '1px solid #e5e7eb', background: '#fff',
+            width: '100%', padding: '14px', borderRadius: 999,
+            border: '1px solid #e5e7eb', background: 'rgba(255,255,255,0.8)',
             fontSize: 15, fontWeight: 600, color: '#374151',
             textDecoration: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -172,22 +157,36 @@ export function CorreccionEscritura() {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function Section({ bg, borderColor, children }: { bg: string; borderColor: string; children: React.ReactNode }) {
+function Card({ bg, border, children }: { bg: string; border: string; children: React.ReactNode }) {
   return (
     <div style={{
-      background: bg, border: `1px solid ${borderColor}`,
-      borderRadius: 16, padding: '20px 24px', marginBottom: 16,
+      background: bg, border: `1px solid ${border}`,
+      borderRadius: 16, padding: '20px 24px',
     }}>
       {children}
     </div>
   );
 }
 
-function SectionTitle({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
+function Title({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-      <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
+      <span style={{ color, display: 'flex', alignItems: 'center', fontSize: 16 }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: 700, color }}>{children}</span>
     </div>
   );
 }
+
+function BulletList({ items, color, icon }: { items: string[]; color: string; icon?: React.ReactNode }) {
+  return (
+    <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {items.map((item, i) => (
+        <li key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color, lineHeight: 1.5 }}>
+          <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{icon ?? '•'}</span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+

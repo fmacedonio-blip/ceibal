@@ -12,9 +12,15 @@ body {
 }
 
 #root {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+.alumno-bg {
+  background: linear-gradient(136deg, #eff6ff 0%, #ecfeff 50%, #f0fdf4 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
 }
 
 h1, h2, h3, h4, h5, h6, p {

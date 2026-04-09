@@ -126,7 +126,7 @@ export function StudentDetail() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['ACTIVIDAD', 'FECHA', 'NOTA', 'ESTADO', 'ACCIONES'].map((h, i) => (
+              {['ACTIVIDAD', 'FECHA', 'ESTADO', 'ACCIONES'].map((h, i) => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
                   {h}
                 </th>
@@ -140,9 +140,6 @@ export function StudentDetail() {
                 <tr key={activity.id} style={{ borderTop: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '14px 16px', fontSize: 14, color: '#111827' }}>{activity.name}</td>
                   <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>{activity.date}</td>
-                  <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 14, fontWeight: 600, color: activity.score != null ? '#111827' : '#9ca3af' }}>
-                    {activity.score != null ? activity.score.toFixed(1) : '—'}
-                  </td>
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                     <span style={{
                       background: cfg.bg, color: cfg.color,

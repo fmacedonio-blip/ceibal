@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { HiPencil, HiMicrophone, HiArrowLeft } from 'react-icons/hi2';
+import { useNavigate } from 'react-router-dom';
+import { HiPencil, HiMicrophone } from 'react-icons/hi2';
 import { getTasks } from '../../../api/alumno';
 import type { Task } from '../../../types/alumno';
 
@@ -12,6 +12,26 @@ const FILTERS: { label: string; value: TypeFilter }[] = [
   { label: 'Lectura', value: 'lectura' },
 ];
 
+const ICON_STYLES: Record<'escritura' | 'lectura', { bg: string; color: string }> = {
+  escritura: { bg: '#fef9c2', color: '#ca8a04' },
+  lectura:   { bg: '#fce7f3', color: '#db2777' },
+};
+
+function TaskIcon({ type }: { type: 'escritura' | 'lectura' }) {
+  const s = ICON_STYLES[type];
+  return (
+    <div style={{
+      width: 52, height: 52, borderRadius: 16, flexShrink: 0,
+      background: s.bg,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {type === 'escritura'
+        ? <HiPencil size={24} color={s.color} />
+        : <HiMicrophone size={24} color={s.color} />}
+    </div>
+  );
+}
+
 export function MisTareas() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState<TypeFilter>('todas');
@@ -22,7 +42,6 @@ export function MisTareas() {
     getTasks().then(setTasks).finally(() => setLoading(false));
   }, []);
 
-  // Pendientes primero, luego completadas (más recientes primero por id desc)
   const sorted = [...tasks].sort((a, b) => {
     if (a.status === 'NO_ENTREGADO' && b.status !== 'NO_ENTREGADO') return -1;
     if (a.status !== 'NO_ENTREGADO' && b.status === 'NO_ENTREGADO') return 1;
@@ -33,119 +52,111 @@ export function MisTareas() {
 
   return (
     <div>
-      <div style={{ marginBottom: 28 }}>
-        <Link
-          to="/alumno/inicio"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6b7280', fontSize: 13, textDecoration: 'none', marginBottom: 12 }}
-        >
-          <HiArrowLeft size={14} /> Volver al inicio
-        </Link>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>Mis Tareas</h1>
-        <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
-          {loading ? 'Cargando...' : `${tasks.length} tarea${tasks.length !== 1 ? 's' : ''} en total`}
-        </p>
+      {/* Título centrado */}
+      <h1 style={{
+        fontSize: 32, fontWeight: 700,
+        color: '#009689',
+        textAlign: 'center',
+        marginBottom: 24,
+      }}>
+        Mis Tareas
+      </h1>
+
+      {/* Filtros centrados */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+        {FILTERS.map((f) => {
+          const isActive = filter === f.value;
+          return (
+            <button
+              key={f.value}
+              onClick={() => setFilter(f.value)}
+              style={{
+                padding: '8px 22px',
+                borderRadius: 999,
+                border: 'none',
+                background: isActive ? '#fde047' : 'transparent',
+                color: isActive ? '#92400e' : '#4a5565',
+                fontWeight: isActive ? 700 : 500,
+                fontSize: 15,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+            >
+              {f.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Filtros */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            style={{
-              padding: '8px 18px', borderRadius: 20, border: 'none',
-              background: filter === f.value ? '#00b89c' : '#f3f4f6',
-              color: filter === f.value ? '#fff' : '#374151',
-              fontWeight: filter === f.value ? 600 : 400,
-              fontSize: 14, cursor: 'pointer',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
+      {loading && (
+        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Cargando...</p>
+      )}
 
       {!loading && filtered.length === 0 && (
-        <div style={{ background: '#fff', borderRadius: 12, padding: '48px 32px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.8)', borderRadius: 16,
+          padding: '48px 32px', textAlign: 'center', color: '#9ca3af', fontSize: 15,
+        }}>
           No tenés tareas {filter !== 'todas' ? `de ${filter}` : ''} aún.
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {filtered.map((task) => {
-          const isEscritura = task.type === 'escritura';
           const isPending = task.status === 'NO_ENTREGADO';
+          const isClickable = !isPending && !!task.submission_id;
 
           return (
             <div
               key={task.id}
+              onClick={isClickable ? () => navigate(
+                `/alumno/tarea/${task.id}/correccion-${task.type}`,
+                { state: { submissionId: task.submission_id } }
+              ) : undefined}
+              onMouseEnter={(e) => { if (isClickable) e.currentTarget.style.background = 'rgba(255,255,255,0.97)'; }}
+              onMouseLeave={(e) => { if (isClickable) e.currentTarget.style.background = 'rgba(255,255,255,0.85)'; }}
               style={{
-                background: '#fff', borderRadius: 12, padding: '18px 20px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                display: 'flex', alignItems: 'center', gap: 14,
+                background: 'rgba(255,255,255,0.85)',
+                borderRadius: 16,
+                padding: '18px 22px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)',
+                display: 'flex', alignItems: 'center', gap: 16,
+                cursor: isClickable ? 'pointer' : 'default',
               }}
             >
-              {/* Ícono tipo */}
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: isEscritura ? '#eff6ff' : '#f0fdf4',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {isEscritura
-                  ? <HiPencil size={20} color="#3b82f6" />
-                  : <HiMicrophone size={20} color="#16a34a" />}
-              </div>
+              <TaskIcon type={task.type} />
 
-              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600, letterSpacing: '0.05em', marginBottom: 2 }}>
-                  {task.subject} · {isEscritura ? 'Escritura' : 'Lectura'}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#1e2939', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {task.name}
                 </div>
-                {task.date && !isPending && (
-                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{task.date}</div>
+                {task.date && (
+                  <div style={{ fontSize: 13, color: '#4a5565' }}>{task.date}</div>
                 )}
               </div>
 
-              {/* Acción */}
+              {/* Acción / badge */}
               {isPending ? (
-                <Link
-                  to={`/alumno/tarea/${task.id}/${task.type}`}
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/alumno/tarea/${task.id}/${task.type}`); }}
                   style={{
-                    padding: '8px 18px', borderRadius: 8, flexShrink: 0,
-                    background: '#00b89c', color: '#fff',
-                    fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                    padding: '10px 24px', borderRadius: 999, border: 'none',
+                    background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+                    color: '#fff', fontSize: 14, fontWeight: 600,
+                    cursor: 'pointer', flexShrink: 0,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                   }}
                 >
                   Empezar
-                </Link>
+                </button>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                  <span style={{
-                    padding: '4px 12px', borderRadius: 20,
-                    background: '#dcfce7', color: '#166534',
-                    fontSize: 12, fontWeight: 600,
-                  }}>
-                    ¡Completada!
-                  </span>
-                  {task.submission_id && (
-                    <button
-                      onClick={() => navigate(
-                        `/alumno/tarea/${task.id}/correccion-${task.type}`,
-                        { state: { submissionId: task.submission_id } }
-                      )}
-                      style={{
-                        padding: '8px 14px', borderRadius: 8, border: '1px solid #d1d5db',
-                        background: '#fff', color: '#374151',
-                        fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                      }}
-                    >
-                      Ver corrección
-                    </button>
-                  )}
-                </div>
+                <span style={{
+                  padding: '7px 18px', borderRadius: 999, flexShrink: 0,
+                  background: '#dcfce7', color: '#008236',
+                  fontSize: 14, fontWeight: 600,
+                }}>
+                  ¡Completada!
+                </span>
               )}
             </div>
           );
