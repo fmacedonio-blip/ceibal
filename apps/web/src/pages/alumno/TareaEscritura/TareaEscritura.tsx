@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiArrowLeft, HiCamera, HiPencil } from 'react-icons/hi2';
 import { getMe, getTasks, submitWriting } from '../../../api/alumno';
-import { useAuthStore } from '../../../store/auth';
 import type { Task } from '../../../types/alumno';
+import { Spinner } from '../../../components/Spinner/Spinner';
 
 export function TareaEscritura() {
   const { taskId } = useParams<{ taskId: string }>();
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +33,7 @@ export function TareaEscritura() {
   }
 
   async function handleSubmit() {
-    if (!file || !user?.student_uuid || !task) return;
+    if (!file || !task) return;
     setUploading(true);
     setError(null);
     try {
@@ -42,8 +41,9 @@ export function TareaEscritura() {
       const classUuid = me.course?.course_uuid ?? '';
       const gradeMatch = me.course?.name.match(/(\d+)/);
       const grade = gradeMatch ? parseInt(gradeMatch[1]) : 4;
+      const studentUuid = me.student_uuid;
 
-      const result = await submitWriting(file, user.student_uuid, classUuid, grade, Number(taskId));
+      const result = await submitWriting(file, studentUuid, classUuid, grade, Number(taskId));
       navigate(`/alumno/tarea/${taskId}/correccion-escritura`, {
         state: { submissionId: result.submission_id, consignaNoCumplida: result.consigna_no_cumplida },
       });
@@ -55,7 +55,7 @@ export function TareaEscritura() {
     }
   }
 
-  if (!task) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando tarea...</p>;
+  if (!task) return <Spinner />;
 
   const canSubmit = !!file && !uploading;
 

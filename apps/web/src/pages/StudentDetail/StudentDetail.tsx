@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { HiEnvelope, HiArrowPath } from 'react-icons/hi2';
 import { generateDiagnosis, getStudent } from '../../api/students';
 import { Avatar } from '../../components/Avatar/Avatar';
+import { Spinner } from '../../components/Spinner/Spinner';
 import type { AiDiagnosis, StudentDetail as StudentDetailType } from '../../types/api';
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
@@ -55,7 +56,7 @@ export function StudentDetail() {
   }
 
   if (error) return <p style={{ color: '#dc2626', fontSize: 14 }}>Alumno no encontrado.</p>;
-  if (!student) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando...</p>;
+  if (!student) return <Spinner />;
 
   const avgColor = student.average >= 8 ? '#00b89c' : student.average >= 6 ? '#f59e0b' : '#dc2626';
 

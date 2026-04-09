@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCourses } from "../../api/courses";
+import { Spinner } from "../../components/Spinner/Spinner";
 import type { Course } from "../../types/api";
 
 const BADGE_COLORS = ["#00b89c", "#6366f1", "#f59e0b", "#10b981", "#f97316", "#ec4899"];
 
 export function Courses() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    getCourses().then(setCourses);
+    getCourses().then(setCourses).finally(() => setLoading(false));
   }, []);
+
+  if (loading) return <Spinner />;
 
   return (
     <div>

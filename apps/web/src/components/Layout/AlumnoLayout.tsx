@@ -1,12 +1,23 @@
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { HiStar } from 'react-icons/hi2';
+import { getMe } from '../../api/alumno';
 import { useAuthStore } from '../../store/auth';
 import { Avatar } from '../Avatar/Avatar';
 import logoUrl from '../../assets/logo.svg?url';
 
 export function AlumnoLayout() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, login, token } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!token) return;
+    getMe().then((me) => {
+      if (user && me.name !== user.name) {
+        login(token, { ...user, name: me.name });
+      }
+    }).catch(() => {});
+  }, []);
 
   function handleLogout() {
     logout();
@@ -29,7 +40,12 @@ export function AlumnoLayout() {
         top: 0,
         zIndex: 10,
       }}>
-        <img src={logoUrl} alt="Ceibal" style={{ height: 30, width: 'auto' }} />
+        <img
+          src={logoUrl}
+          alt="Ceibal"
+          onClick={() => navigate('/alumno/inicio')}
+          style={{ height: 30, width: 'auto', cursor: 'pointer' }}
+        />
 
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>

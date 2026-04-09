@@ -3,6 +3,14 @@ import type { AuthUser } from "../types/api";
 
 const TOKEN_KEY = "ceibal_token";
 
+function fixEncoding(str: string): string {
+  try {
+    return decodeURIComponent(escape(str));
+  } catch {
+    return str;
+  }
+}
+
 interface AuthState {
   token: string | null;
   user: AuthUser | null;
@@ -30,7 +38,7 @@ if (storedToken) {
     const role = payload.role ?? groups[0] ?? "docente";
     initialUser = {
       id: payload.sub,
-      name: payload.name ?? payload["cognito:username"] ?? payload.sub,
+      name: fixEncoding(payload.name ?? payload["cognito:username"] ?? payload.sub),
       role,
       ...(payload.student_uuid && { student_uuid: payload.student_uuid }),
       ...(payload.student_id != null && { student_id: payload.student_id }),

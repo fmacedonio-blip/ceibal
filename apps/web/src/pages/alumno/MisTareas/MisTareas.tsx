@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { HiPencil, HiMicrophone } from 'react-icons/hi2';
 import { getTasks } from '../../../api/alumno';
 import type { Task } from '../../../types/alumno';
+import { Spinner } from '../../../components/Spinner/Spinner';
 
 type TypeFilter = 'todas' | 'escritura' | 'lectura';
 
@@ -89,7 +90,7 @@ export function MisTareas() {
       </div>
 
       {loading && (
-        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Cargando...</p>
+        <Spinner />
       )}
 
       {!loading && filtered.length === 0 && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiArrowLeft, HiExclamationTriangle } from 'react-icons/hi2';
 import { getCourse, getTaskStudents } from '../../api/courses';
+import { Spinner } from '../../components/Spinner/Spinner';
 import type { TaskDetailResponse, TaskStudentRow } from '../../api/courses';
 import { Avatar } from '../../components/Avatar/Avatar';
 
@@ -121,7 +122,7 @@ export function TaskDetail() {
         </button>
 
         {loading ? (
-          <p style={{ fontSize: 14, color: '#9ca3af' }}>Cargando...</p>
+          <Spinner />
         ) : task && (
           <div style={{ background: '#fff', borderRadius: 12, padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             {/* Tipo + título */}

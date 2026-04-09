@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { HiPencil, HiMicrophone, HiSparkles, HiStar } from 'react-icons/hi2';
 import { getTasks } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
+import { Spinner } from '../../../components/Spinner/Spinner';
 import type { Task } from '../../../types/alumno';
 
 const ICON_STYLES: Record<'escritura' | 'lectura', { bg: string; color: string }> = {
@@ -47,12 +48,10 @@ export function Inicio() {
         <h1 style={{ fontSize: 34, fontWeight: 700, color: '#1e2939', marginBottom: 6, letterSpacing: '-0.5px' }}>
           ¡Hola, {firstName}!
         </h1>
-        <p style={{ fontSize: 17, color: '#4a5565' }}>
-          {loading ? 'Cargando tus tareas...' : '¿Qué aprenderemos hoy?'}
-        </p>
+        <p style={{ fontSize: 17, color: '#4a5565' }}>¿Qué aprenderemos hoy?</p>
       </div>
 
-      {!loading && (
+      {loading ? <Spinner /> : (
         <>
           {/* Nueva Tarea */}
           <div>

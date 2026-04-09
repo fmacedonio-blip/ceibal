@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCourseTasksList } from '../../api/courses';
 import { TaskRow } from './TaskRow';
+import { Spinner } from '../../components/Spinner/Spinner';
 
 type TaskType = 'lectura' | 'escritura';
 type TaskFilter = 'todas' | TaskType;
@@ -75,9 +76,7 @@ export function TasksTab({ courseId, onAdd, refreshKey }: Props) {
 
       {/* Lista */}
       {loading ? (
-        <p style={{ fontSize: 14, color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>
-          Cargando tareas...
-        </p>
+        <Spinner />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map((task) => (

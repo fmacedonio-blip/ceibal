@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getCourse, getCourseStudents } from '../../api/courses';
 import { Avatar } from '../../components/Avatar/Avatar';
+import { Spinner } from '../../components/Spinner/Spinner';
 import type { StudentFilter, StudentListItem } from '../../types/api';
 
 const FILTERS: { label: string; value: StudentFilter }[] = [
@@ -32,6 +33,7 @@ export function Students() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ students: StudentListItem[]; total: number } | null>(null);
   const [courseName, setCourseName] = useState('');
+  const [loading, setLoading] = useState(true);
   const limit = 6;
 
   useEffect(() => {
@@ -41,7 +43,10 @@ export function Students() {
 
   useEffect(() => {
     if (!courseId) return;
-    getCourseStudents(courseId, { filter, search, page, limit }).then(setData);
+    setLoading(true);
+    getCourseStudents(courseId, { filter, search, page, limit })
+      .then(setData)
+      .finally(() => setLoading(false));
   }, [courseId, filter, search, page]);
 
   const totalPages = data ? Math.ceil(data.total / limit) : 1;
@@ -108,7 +113,9 @@ export function Students() {
             </tr>
           </thead>
           <tbody>
-            {(data?.students ?? []).map((student) => (
+            {loading ? (
+              <tr><td colSpan={4}><Spinner /></td></tr>
+            ) : (data?.students ?? []).map((student) => (
               <tr key={student.id} style={{ borderTop: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -59,22 +59,10 @@ ALUMNOS = [
 def seed():
     db = Session()
     try:
-        # Clear existing data — order matters (delete dependents first)
-        from app.models import Activity, AiDiagnosis, Alert
-        from app.models.chat import ChatMessage, ChatSession
-        from app.models.submission import Submission, SubmissionError
-
-        db.query(ChatMessage).delete()
-        db.query(ChatSession).delete()
-        db.query(SubmissionError).delete()
-        db.query(Submission).delete()
-        db.query(Activity).delete()
-        db.query(AiDiagnosis).delete()
-        db.query(Alert).delete()
-        db.query(Student).delete()
-        db.query(Course).delete()
-        db.query(User).delete()
-        db.commit()
+        # Skip if already seeded — preserves data created via the app
+        if db.query(User).first():
+            print("Seed ya aplicado, saltando.")
+            return
 
         # Create docentes
         users_by_email: dict[str, User] = {}

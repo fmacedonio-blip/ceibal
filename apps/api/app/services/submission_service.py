@@ -70,6 +70,11 @@ def _link_activity(activity_id: int, submission_id: uuid.UUID, consigna_no_cumpl
                 if student is not None:
                     student.tasks_completed = (student.tasks_completed or 0) + 1
                     student.last_activity = activity.name
+                    student.status = (
+                        "al_dia"
+                        if student.tasks_completed >= student.tasks_total
+                        else "pendiente"
+                    )
             db_sync.commit()
         except Exception:
             db_sync.rollback()

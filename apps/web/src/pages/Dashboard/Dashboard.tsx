@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { HiExclamationCircle, HiInformationCircle } from 'react-icons/hi2';
 import { getDashboard } from '../../api/dashboard';
 import { Avatar } from '../../components/Avatar/Avatar';
+import { Spinner } from '../../components/Spinner/Spinner';
 import type { DashboardResponse, AlertSeverity } from '../../types/api';
 
 const SEVERITY_COLOR: Record<AlertSeverity, string> = {
@@ -21,6 +22,12 @@ const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }>
 
 const DEFAULT_STATUS = { bg: '#f3f4f6', color: '#6b7280', label: 'DESCONOCIDO' };
 
+const STATIC_ALERTS = [
+  { id: 1, type: 'difficulty', severity: 'high'   as const, message: '3 alumnos muestran dificultades significativas en ortografía' },
+  { id: 2, type: 'pending',    severity: 'medium' as const, message: '5 tareas sin evaluación pendientes de revisión' },
+  { id: 3, type: 'suggestion', severity: 'low'    as const, message: 'Nuevo grupo recomendado según asistencias irregulares' },
+];
+
 export function Dashboard() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const navigate = useNavigate();
@@ -29,7 +36,7 @@ export function Dashboard() {
     getDashboard().then(setData);
   }, []);
 
-  if (!data) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando...</p>;
+  if (!data) return <Spinner />;
 
   return (
     <div>
@@ -39,7 +46,7 @@ export function Dashboard() {
           Alertas Prioritarias
         </h2>
         <div style={{ display: 'flex', gap: 16 }}>
-          {data.alerts.map((alert) => (
+          {STATIC_ALERTS.map((alert) => (
             <div
               key={alert.id}
               style={{
@@ -155,7 +162,13 @@ export function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {data.recent_activity.map((row, i) => {
+              {data.recent_activity.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: '40px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+                    Todavía no hay actividad reciente en tus cursos.
+                  </td>
+                </tr>
+              ) : data.recent_activity.map((row, i) => {
                 const st = STATUS_STYLE[row.status] ?? DEFAULT_STATUS;
                 return (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>

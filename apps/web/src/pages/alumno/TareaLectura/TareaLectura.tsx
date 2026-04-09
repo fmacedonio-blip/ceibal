@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiArrowLeft, HiMicrophone, HiStop, HiPlay, HiPause, HiTrash, HiMusicalNote } from 'react-icons/hi2';
 import { getMe, getTasks, submitAudio } from '../../../api/alumno';
-import { useAuthStore } from '../../../store/auth';
 import type { Task } from '../../../types/alumno';
+import { Spinner } from '../../../components/Spinner/Spinner';
 
 type Phase = 'idle' | 'recording' | 'recorded';
 type InputMode = 'record' | 'upload';
@@ -106,7 +106,6 @@ function AudioPlayer({ url, onReset }: { url: string; onReset: () => void }) {
 
 export function TareaLectura() {
   const { taskId } = useParams<{ taskId: string }>();
-  const { user } = useAuthStore();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -214,7 +213,7 @@ export function TareaLectura() {
   async function handleSubmit() {
     const blob = inputMode === 'record' ? audioBlob : uploadedFile;
     const filename = inputMode === 'upload' && uploadedFile ? uploadedFile.name : undefined;
-    if (!blob || !user?.student_uuid || !task) return;
+    if (!blob || !task) return;
 
     setUploading(true);
     setError(null);
@@ -223,12 +222,13 @@ export function TareaLectura() {
       const classUuid = me.course?.course_uuid ?? '';
       const gradeMatch = me.course?.name.match(/(\d+)/);
       const grade = gradeMatch ? parseInt(gradeMatch[1]) : 4;
+      const studentUuid = me.student_uuid;
       const textoOriginal = task.reading_text ?? task.description ?? task.name;
       const duracion = inputMode === 'record' ? elapsedRef.current : undefined;
 
       const result = await submitAudio(
-        blob, user.student_uuid, classUuid, grade,
-        textoOriginal, user.name, Number(taskId), duracion, filename,
+        blob, studentUuid, classUuid, grade,
+        textoOriginal, me.name, Number(taskId), duracion, filename,
       );
       navigate(`/alumno/tarea/${taskId}/correccion-lectura`, {
         state: { submissionId: result.submission_id, consignaNoCumplida: result.consigna_no_cumplida },
@@ -255,7 +255,7 @@ export function TareaLectura() {
     (inputMode === 'upload' && uploadedFile !== null)
   );
 
-  if (!task) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando tarea...</p>;
+  if (!task) return <Spinner />;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 640, margin: '0 auto' }}>

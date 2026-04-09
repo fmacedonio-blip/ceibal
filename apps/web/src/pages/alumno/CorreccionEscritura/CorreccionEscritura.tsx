@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Spinner } from '../../../components/Spinner/Spinner';
 import {
   HiChatBubbleLeftRight, HiHome, HiCheckCircle,
   HiLightBulb, HiWrenchScrewdriver, HiArrowPath,
@@ -32,11 +33,7 @@ export function CorreccionEscritura() {
       .finally(() => setLoading(false));
   }, [submissionId]);
 
-  if (loading) return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15 }}>
-      Analizando tu escritura...
-    </div>
-  );
+  if (loading) return <Spinner />;
 
   if (error || !alumno) return (
     <div style={{ textAlign: 'center', padding: '80px 0' }}>

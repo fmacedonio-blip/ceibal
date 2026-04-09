@@ -39,9 +39,11 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div
+        onClick={() => navigate('/dashboard')}
         style={{
           padding: '24px 24px 20px',
           borderBottom: '1px solid #f3f4f6',
+          cursor: 'pointer',
         }}
       >
         <img src={logo} alt="Ceibal" style={{ height: 28, width: 'auto', display: 'block' }} />
@@ -82,7 +84,11 @@ export function Sidebar() {
         }}
       >
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            onClick={handleLogout}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}
+            title="Cerrar sesión"
+          >
             <Avatar name={user.name} size={40} fontSize={14} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div

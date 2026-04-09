@@ -4,6 +4,7 @@ import { HiHome, HiPaperAirplane } from 'react-icons/hi2';
 import { getChatHistory, getChatSession, sendChatMessage, startChat } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
 import { Avatar } from '../../../components/Avatar/Avatar';
+import { Spinner } from '../../../components/Spinner/Spinner';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -105,11 +106,7 @@ export function ChatCopiloto() {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {loading && (
-          <div style={{ textAlign: 'center', color: '#6b7280', fontSize: 14, marginTop: 60 }}>
-            Conectando con el Copiloto...
-          </div>
-        )}
+        {loading && <Spinner />}
         {error && (
           <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, marginTop: 60 }}>{error}</div>
         )}

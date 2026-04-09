@@ -5,6 +5,7 @@ import { getStudent } from '../../api/students';
 import { getCorrection, getSubmissionImageUrl } from '../../api/alumno';
 import type { ActivityHistory, StudentDetail } from '../../types/api';
 import type { CorrectionResponse, WritingCorrectionResponse, AudioCorrectionResponse } from '../../types/alumno';
+import { Spinner } from '../../components/Spinner/Spinner';
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
   COMPLETADA:   { bg: '#dcfce7', color: '#166534', label: 'Completada' },
@@ -50,7 +51,7 @@ export function ActivityDetail() {
       </div>
     );
   }
-  if (!student || !activity) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando...</p>;
+  if (!student || !activity) return <Spinner />;
 
   const cfg = STATUS_CONFIG[activity.status] ?? DEFAULT_STATUS_CONFIG;
   const hasSubmission = !!activity.submission_id;

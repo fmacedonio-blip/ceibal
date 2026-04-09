@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCourseStudents } from '../../api/courses';
 import { Avatar } from '../../components/Avatar/Avatar';
+import { Spinner } from '../../components/Spinner/Spinner';
 import type { StudentFilter, StudentListItem } from '../../types/api';
 
 const FILTERS: { label: string; value: StudentFilter }[] = [
@@ -43,10 +44,14 @@ export function StudentsTab({ courseId }: Props) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ students: StudentListItem[]; total: number } | null>(null);
+  const [loading, setLoading] = useState(true);
   const limit = 6;
 
   useEffect(() => {
-    getCourseStudents(courseId, { filter, search, page, limit }).then(setData);
+    setLoading(true);
+    getCourseStudents(courseId, { filter, search, page, limit })
+      .then(setData)
+      .finally(() => setLoading(false));
   }, [courseId, filter, search, page]);
 
   const totalPages = data ? Math.ceil(data.total / limit) : 1;
@@ -105,7 +110,9 @@ export function StudentsTab({ courseId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {(data?.students ?? []).map((student) => (
+            {loading ? (
+              <tr><td colSpan={4}><Spinner /></td></tr>
+            ) : (data?.students ?? []).map((student) => (
               <tr
                 key={student.id}
                 onClick={() => navigate(`/students/${student.id}`)}

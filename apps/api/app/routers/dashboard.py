@@ -8,6 +8,11 @@ from app.models import Activity, Alert, Course, Student, User
 router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
 
+@router.get("/profile")
+def get_profile(current_user: User = Depends(get_current_user)) -> dict:
+    return {"id": current_user.id, "name": current_user.name, "role": current_user.role}
+
+
 @router.get("/dashboard")
 def get_dashboard(
     current_user: User = Depends(get_current_user),

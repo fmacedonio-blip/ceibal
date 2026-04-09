@@ -41,7 +41,9 @@ def get_current_user(
         user = db.query(User).filter(User.email == email).first()
         if user is not None:
             user.sub = sub
-            user.name = name
+            # Only update name if not already set (avoids Cognito encoding issues)
+            if not user.name:
+                user.name = name
             user.role = role
         else:
             user = User(sub=sub, name=name, role=role, email=email)
