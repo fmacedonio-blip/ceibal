@@ -346,7 +346,7 @@ export function ActivityDetail() {
                   <p style={{ fontSize: 10, fontWeight: 700, color: '#155dfc', letterSpacing: '0.06em', marginBottom: 6 }}>RECOMENDACIÓN</p>
                   <ul style={{ margin: 0, padding: '0 0 0 14px' }}>
                     {writingCorr.docente.puntos_de_mejora.map((p: Record<string, unknown>, i) => {
-                      const text = (p.explicacion_pedagogica as string) || (p.descripcion as string) || (p.area as string) || '';
+                      const text = (p.explicacion_docente as string) || (p.descripcion as string) || (p.area as string) || '';
                       return text ? (
                         <li key={i} style={{ fontSize: 12, color: '#364153', lineHeight: 1.5, marginBottom: 4 }}>{text}</li>
                       ) : null;

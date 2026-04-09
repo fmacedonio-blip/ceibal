@@ -102,6 +102,7 @@ def analizar(
     data.setdefault("aspectos_positivos_verificados", [])
     data.setdefault("calidad_audio_baja", False)
     data.setdefault("notas_calidad", "")
+    data.setdefault("texto_no_relacionado", False)
 
     try:
         return OutputCall1Audio.model_validate(data)

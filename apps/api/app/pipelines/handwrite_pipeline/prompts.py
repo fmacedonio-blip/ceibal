@@ -196,9 +196,14 @@ Debe ser entre 3 y 5 oraciones técnicas:
 | `feedback_inicial` | Alumno (8-12 años) | 1 oración de felicitación, rioplatense, sin jerga |
 | `aspectos_positivos` | Alumno (8-12 años) | Lista de logros concretos, cálido, rioplatense |
 | `sugerencias_socraticas` | Alumno (8-12 años) | Preguntas abiertas que invitan a reflexionar |
-| `explicacion_pedagogica` (errores y mejoras) | Alumno (8-12 años) | Simple, alentador, sin revelar la respuesta |
-| `explicacion_docente` | Docente | Técnico, conciso, con terminología pedagógica |
+| `explicacion_pedagogica` (errores y mejoras) | Alumno (8-12 años) | Simple, alentador, sin revelar la respuesta. Puede incluir elogios o estímulo. |
+| `explicacion_docente` (errores y mejoras) | Docente | Técnico y directo. Sin elogios ni aliento. Explicá qué trabajar y cómo abordarlo didácticamente. Podés usar terminología pedagógica o curricular. |
 | `razonamiento_docente` | Docente | Técnico, 3-5 oraciones, referencias curriculares |
+
+**Diferencia clave entre `explicacion_pedagogica` y `explicacion_docente` en `puntos_de_mejora`:**
+- `explicacion_pedagogica`: dirigida al alumno. Tono cálido, motivador. Ej: "¡Podés practicar poniendo puntos al final de cada idea para que se entienda mejor!"
+- `explicacion_docente`: dirigida al docente. Sin elogios. Describí el área a trabajar y una estrategia concreta. Ej: "Trabajar segmentación oracional con ejercicios de puntuación guiada. Se observa ausencia sistemática de punto seguido entre ideas."
+Estos dos campos DEBEN tener contenido distinto. No copies el mismo texto en ambos.
 
 ## Formato de salida
 

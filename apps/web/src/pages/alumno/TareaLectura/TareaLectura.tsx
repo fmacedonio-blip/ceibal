@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { HiArrowLeft, HiMicrophone, HiStop, HiPlay, HiPause, HiTrash } from 'react-icons/hi2';
+import { HiArrowLeft, HiMicrophone, HiStop, HiPlay, HiPause, HiTrash, HiMusicalNote } from 'react-icons/hi2';
 import { getMe, getTasks, submitAudio } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
 import type { Task } from '../../../types/alumno';
 
 type Phase = 'idle' | 'recording' | 'recorded';
+type InputMode = 'record' | 'upload';
 
 function AudioPlayer({ url, onReset }: { url: string; onReset: () => void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -73,7 +74,6 @@ function AudioPlayer({ url, onReset }: { url: string; onReset: () => void }) {
         {playing ? <HiPause size={20} /> : <HiPlay size={20} />}
       </button>
 
-      {/* Barra + tiempo superpuesto */}
       <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
         <div style={{ height: 6, background: 'rgba(0,0,0,0.1)', borderRadius: 999, overflow: 'hidden' }}>
           <div ref={barRef} style={{ height: 6, width: '0%', background: '#00bba7', borderRadius: 999 }} />
@@ -108,14 +108,23 @@ export function TareaLectura() {
   const { taskId } = useParams<{ taskId: string }>();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [task, setTask] = useState<Task | null>(null);
+  const [inputMode, setInputMode] = useState<InputMode>('record');
+
+  // Record mode state
   const [phase, setPhase] = useState<Phase>('idle');
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+
+  // Upload mode state
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [elapsed, setElapsed] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -129,6 +138,15 @@ export function TareaLectura() {
     });
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [taskId]);
+
+  function switchMode(mode: InputMode) {
+    resetRecording();
+    resetUpload();
+    setError(null);
+    setInputMode(mode);
+  }
+
+  // ── Record mode ────────────────────────────────────────────────────────────
 
   async function startRecording() {
     setError(null);
@@ -172,8 +190,32 @@ export function TareaLectura() {
     setElapsed(0);
   }
 
+  // ── Upload mode ────────────────────────────────────────────────────────────
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+    setUploadedFile(selected);
+    setUploadedUrl(URL.createObjectURL(selected));
+    setError(null);
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+  }
+
+  function resetUpload() {
+    if (uploadedUrl) URL.revokeObjectURL(uploadedUrl);
+    setUploadedFile(null);
+    setUploadedUrl(null);
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+
   async function handleSubmit() {
-    if (!audioBlob || !user?.student_uuid || !task) return;
+    const blob = inputMode === 'record' ? audioBlob : uploadedFile;
+    const filename = inputMode === 'upload' && uploadedFile ? uploadedFile.name : undefined;
+    if (!blob || !user?.student_uuid || !task) return;
+
     setUploading(true);
     setError(null);
     try {
@@ -182,12 +224,14 @@ export function TareaLectura() {
       const gradeMatch = me.course?.name.match(/(\d+)/);
       const grade = gradeMatch ? parseInt(gradeMatch[1]) : 4;
       const textoOriginal = task.reading_text ?? task.description ?? task.name;
+      const duracion = inputMode === 'record' ? elapsedRef.current : undefined;
+
       const result = await submitAudio(
-        audioBlob, user.student_uuid, classUuid, grade,
-        textoOriginal, user.name, Number(taskId), elapsedRef.current,
+        blob, user.student_uuid, classUuid, grade,
+        textoOriginal, user.name, Number(taskId), duracion, filename,
       );
       navigate(`/alumno/tarea/${taskId}/correccion-lectura`, {
-        state: { submissionId: result.submission_id },
+        state: { submissionId: result.submission_id, consignaNoCumplida: result.consigna_no_cumplida },
       });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
@@ -206,7 +250,10 @@ export function TareaLectura() {
   const formatTime = (s: number) =>
     `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-  const canSubmit = phase === 'recorded' && !uploading;
+  const canSubmit = !uploading && (
+    (inputMode === 'record' && phase === 'recorded') ||
+    (inputMode === 'upload' && uploadedFile !== null)
+  );
 
   if (!task) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando tarea...</p>;
 
@@ -227,7 +274,7 @@ export function TareaLectura() {
         <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1e2939' }}>Lee este párrafo</h1>
       </div>
 
-      {/* Card de texto — header rosa como lectura */}
+      {/* Card de texto */}
       {task.reading_text && (
         <div style={{
           background: 'rgba(255,255,255,0.9)',
@@ -259,67 +306,159 @@ export function TareaLectura() {
         </div>
       )}
 
-      {/* Instrucción */}
-      <p style={{ textAlign: 'center', fontSize: 14, color: '#4a5565', margin: 0 }}>
-        {phase === 'idle'
-          ? 'Cuando estés listo, hacé clic en el micrófono'
-          : phase === 'recording'
-          ? 'Leé el texto en voz alta. Cuando termines, presioná detener.'
-          : '¡Grabación lista! Escuchala o grabá de nuevo.'}
-      </p>
-
-      {/* Controles grabación */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-
-        {phase === 'idle' && (
+      {/* Toggle grabar / subir */}
+      <div style={{
+        display: 'flex', background: '#f3f4f6', borderRadius: 999,
+        padding: 4, gap: 4,
+      }}>
+        {(['record', 'upload'] as InputMode[]).map((mode) => (
           <button
-            onClick={startRecording}
+            key={mode}
+            onClick={() => switchMode(mode)}
             style={{
-              width: 80, height: 80, borderRadius: '50%', border: 'none',
-              background: '#00bba7', color: '#fff',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(0,187,167,0.4)',
-              transition: 'transform 0.15s',
+              flex: 1, padding: '10px 0', borderRadius: 999, border: 'none',
+              background: inputMode === mode ? '#fff' : 'transparent',
+              color: inputMode === mode ? '#009689' : '#6b7280',
+              fontWeight: inputMode === mode ? 700 : 500,
+              fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: inputMode === mode ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
           >
-            <HiMicrophone size={34} />
+            {mode === 'record'
+              ? <><HiMicrophone size={15} /> Grabar</>
+              : <><HiMusicalNote size={15} /> Subir archivo</>}
           </button>
-        )}
+        ))}
+      </div>
 
-        {phase === 'recording' && (
-          <>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* Pulse ring */}
-              <div style={{
-                position: 'absolute', width: 80, height: 80, borderRadius: '50%',
-                background: 'rgba(239,68,68,0.3)',
-                animation: 'pulse-ring 1.2s ease-out infinite',
-              }} />
+      {/* ── Modo grabar ── */}
+      {inputMode === 'record' && (
+        <>
+          <p style={{ textAlign: 'center', fontSize: 14, color: '#4a5565', margin: 0 }}>
+            {phase === 'idle'
+              ? 'Cuando estés listo, hacé clic en el micrófono'
+              : phase === 'recording'
+              ? 'Leé el texto en voz alta. Cuando termines, presioná detener.'
+              : '¡Grabación lista! Escuchala o grabá de nuevo.'}
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            {phase === 'idle' && (
               <button
-                onClick={stopRecording}
+                onClick={startRecording}
                 style={{
                   width: 80, height: 80, borderRadius: '50%', border: 'none',
-                  background: '#ef4444', color: '#fff',
+                  background: '#00bba7', color: '#fff',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 16px rgba(239,68,68,0.4)',
-                  position: 'relative', zIndex: 1,
+                  boxShadow: '0 4px 16px rgba(0,187,167,0.4)',
+                  transition: 'transform 0.15s',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <HiMicrophone size={34} />
+              </button>
+            )}
+
+            {phase === 'recording' && (
+              <>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{
+                    position: 'absolute', width: 80, height: 80, borderRadius: '50%',
+                    background: 'rgba(239,68,68,0.3)',
+                    animation: 'pulse-ring 1.2s ease-out infinite',
+                  }} />
+                  <button
+                    onClick={stopRecording}
+                    style={{
+                      width: 80, height: 80, borderRadius: '50%', border: 'none',
+                      background: '#ef4444', color: '#fff',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: '0 4px 16px rgba(239,68,68,0.4)',
+                      position: 'relative', zIndex: 1,
+                    }}
+                  >
+                    <HiStop size={32} />
+                  </button>
+                </div>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>
+                  Grabando... {formatTime(elapsed)}
+                </span>
+              </>
+            )}
+
+            {phase === 'recorded' && audioUrl && (
+              <AudioPlayer url={audioUrl} onReset={resetRecording} />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Modo subir archivo ── */}
+      {inputMode === 'upload' && (
+        <div style={{
+          background: 'rgba(255,255,255,0.85)',
+          borderRadius: 20, padding: '28px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.07)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+        }}>
+          {!uploadedFile ? (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#00b89c')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#d1d5db')}
+              style={{
+                border: '2px dashed #d1d5db', borderRadius: 16,
+                padding: '40px 24px', textAlign: 'center',
+                cursor: 'pointer', transition: 'border-color 0.2s',
+                width: '100%', boxSizing: 'border-box',
+              }}
+            >
+              <div style={{
+                width: 64, height: 64, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #e0f2fe, #cffafe)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 14px',
+                boxShadow: '0 4px 10px rgba(0,184,219,0.2)',
+              }}>
+                <HiMusicalNote size={32} color="#0e7490" />
+              </div>
+              <p style={{ fontSize: 15, fontWeight: 600, color: '#009689', margin: 0 }}>
+                Hacé clic para subir un archivo de audio
+              </p>
+              <p style={{ fontSize: 12, color: '#9ca3af', margin: '6px 0 0' }}>
+                MP3, WAV, M4A, OGG, WEBM...
+              </p>
+            </div>
+          ) : (
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <AudioPlayer url={uploadedUrl!} onReset={resetUpload} />
+              <p style={{ fontSize: 13, color: '#6b7280', margin: 0, textAlign: 'center' }}>
+                📎 {uploadedFile.name}
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: 13, color: '#00b89c', fontFamily: 'inherit', padding: '2px 0',
                 }}
               >
-                <HiStop size={32} />
+                Cambiar archivo
               </button>
             </div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>
-              Grabando... {formatTime(elapsed)}
-            </span>
-          </>
-        )}
+          )}
 
-        {phase === 'recorded' && audioUrl && (
-          <AudioPlayer url={audioUrl} onReset={resetRecording} />
-        )}
-      </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+      )}
 
       {error && (
         <p style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', margin: 0 }}>{error}</p>
