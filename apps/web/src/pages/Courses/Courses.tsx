@@ -63,14 +63,14 @@ export function Courses() {
             </div>
 
             <button
-              onClick={() => navigate(`/courses/${course.id}/students`)}
+              onClick={() => navigate(`/courses/${course.id}`)}
               style={{
                 width: "100%", padding: "10px", borderRadius: 8,
                 background: "#00b89c", color: "#fff",
                 border: "none", fontWeight: 600, fontSize: 14, cursor: "pointer",
               }}
             >
-              Ver alumnos
+              Ver curso
             </button>
           </div>
         ))}

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { HiChatBubbleLeftRight, HiHome } from 'react-icons/hi2';
+import {
+  HiChatBubbleLeftRight, HiHome, HiCheckCircle, HiSparkles,
+  HiClock, HiPencil, HiLightBulb, HiWrenchScrewdriver,
+} from 'react-icons/hi2';
 import { getCorrection } from '../../../api/alumno';
 import type { WritingCorrectionAlumno } from '../../../types/alumno';
 
@@ -28,8 +31,8 @@ export function CorreccionEscritura() {
   }, [submissionId]);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15 }}>
-      ✨ Analizando tu escritura...
+    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <HiSparkles size={16} /> Analizando tu escritura...
     </div>
   );
 
@@ -53,7 +56,7 @@ export function CorreccionEscritura() {
       {/* Tu texto */}
       {alumno.transcripcion_html && (
         <Section bg="#fff" borderColor="#e5e7eb">
-          <SectionTitle icon="✦" color="#374151">Tu texto</SectionTitle>
+          <SectionTitle icon={<HiSparkles size={16} />} color="#374151">Tu texto</SectionTitle>
           <div
             style={{ fontSize: 15, lineHeight: 2, color: '#374151' }}
             dangerouslySetInnerHTML={{ __html: alumno.transcripcion_html }}
@@ -67,7 +70,7 @@ export function CorreccionEscritura() {
       {/* Lo que está muy bien */}
       {alumno.aspectos_positivos.length > 0 && (
         <Section bg="#e8faf5" borderColor="#6ee7b7">
-          <SectionTitle icon="✅" color="#065f46">Lo que está muy bien</SectionTitle>
+          <SectionTitle icon={<HiCheckCircle size={16} />} color="#065f46">Lo que está muy bien</SectionTitle>
           <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {alumno.aspectos_positivos.map((item, i) => (
               <li key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#065f46', lineHeight: 1.5 }}>
@@ -82,15 +85,16 @@ export function CorreccionEscritura() {
       {/* Para seguir practicando */}
       {alumno.sugerencias_socraticas.length > 0 && (
         <Section bg="#fefce8" borderColor="#fde68a">
-          <SectionTitle icon="⏱️" color="#92400e">Para seguir practicando 💪</SectionTitle>
+          <SectionTitle icon={<HiClock size={16} />} color="#92400e">Para seguir practicando</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {alumno.sugerencias_socraticas.map((q, i) => (
               <div key={i} style={{
                 background: '#fff', borderRadius: 10,
                 padding: '12px 16px', fontSize: 14, color: '#374151',
-                lineHeight: 1.5,
+                lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8,
               }}>
-                {q.startsWith('¿') ? <span style={{ marginRight: 6 }}>✏️</span> : null}{q}
+                {q.startsWith('¿') && <HiPencil size={14} style={{ flexShrink: 0, marginTop: 2, color: '#b45309' }} />}
+                <span>{q}</span>
               </div>
             ))}
           </div>
@@ -100,7 +104,7 @@ export function CorreccionEscritura() {
       {/* Cosas a corregir */}
       {alumno.errores.length > 0 && (
         <Section bg="#fff7ed" borderColor="#fed7aa">
-          <SectionTitle icon="⏱️" color="#9a3412">Cosas a corregir</SectionTitle>
+          <SectionTitle icon={<HiWrenchScrewdriver size={16} />} color="#9a3412">Cosas a corregir</SectionTitle>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {alumno.errores.map((err, i) => (
               <div key={i} style={{
@@ -123,11 +127,11 @@ export function CorreccionEscritura() {
       {/* Consejos para la próxima */}
       {alumno.consejos.length > 0 && (
         <Section bg="#fdf4ff" borderColor="#e9d5ff">
-          <SectionTitle icon="💡" color="#7c3aed">Consejos para la próxima</SectionTitle>
+          <SectionTitle icon={<HiLightBulb size={16} />} color="#7c3aed">Consejos para la próxima</SectionTitle>
           <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {alumno.consejos.map((c, i) => (
               <li key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#374151', lineHeight: 1.5 }}>
-                <span style={{ flexShrink: 0 }}>💡</span>
+                <HiLightBulb size={14} style={{ flexShrink: 0, marginTop: 2, color: '#7c3aed' }} />
                 <span>{c}</span>
               </li>
             ))}
@@ -168,28 +172,21 @@ export function CorreccionEscritura() {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function Section({
-  bg, borderColor, children,
-}: {
-  bg: string; borderColor: string; children: React.ReactNode;
-}) {
+function Section({ bg, borderColor, children }: { bg: string; borderColor: string; children: React.ReactNode }) {
   return (
     <div style={{
-      background: bg,
-      border: `1px solid ${borderColor}`,
-      borderRadius: 16,
-      padding: '20px 24px',
-      marginBottom: 16,
+      background: bg, border: `1px solid ${borderColor}`,
+      borderRadius: 16, padding: '20px 24px', marginBottom: 16,
     }}>
       {children}
     </div>
   );
 }
 
-function SectionTitle({ icon, color, children }: { icon: string; color: string; children: React.ReactNode }) {
+function SectionTitle({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
+      <span style={{ color, display: 'flex', alignItems: 'center' }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: 700, color }}>{children}</span>
     </div>
   );

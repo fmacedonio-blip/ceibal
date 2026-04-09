@@ -1,35 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { HiChatBubbleLeftRight, HiHome, HiLightBulb, HiExclamationCircle, HiCheckCircle } from 'react-icons/hi2';
+import {
+  HiChatBubbleLeftRight, HiHome, HiLightBulb, HiExclamationCircle, HiCheckCircle,
+  HiPause, HiLanguage, HiClock, HiScissors, HiBolt,
+  HiArrowPath, HiChevronDoubleRight, HiArrowUturnRight, HiSpeakerWave,
+  HiMicrophone, HiBookOpen, HiStar,
+} from 'react-icons/hi2';
 import { getCorrection } from '../../../api/alumno';
 import type { AudioCorrectionAlumno, AudioCorrectionErrorAlumno } from '../../../types/alumno';
 
-
 /* ---------- fluency alert labels for students ---------- */
 
-const ALERTA_FLUIDEZ_INFO: Record<string, { icon: string; title: string; tip: string }> = {
+const ALERTA_FLUIDEZ_INFO: Record<string, { icon: React.ReactNode; title: string; tip: string }> = {
   no_respeta_pausas: {
-    icon: '⏸️',
+    icon: <HiPause size={20} />,
     title: 'Pausas y puntuación',
     tip: 'Cuando ves un punto (.) o una coma (,), hacé una pausa cortita antes de seguir. Es como tomar aire.',
   },
   dificultad_polisilabas: {
-    icon: '🔤',
+    icon: <HiLanguage size={20} />,
     title: 'Palabras largas',
     tip: 'Algunas palabras largas te costaron un poco. ¡Practicá dividiéndolas en sílabas antes de leerlas completas!',
   },
   lectura_palabra_por_palabra: {
-    icon: '🐢',
+    icon: <HiClock size={20} />,
     title: 'Lectura palabra por palabra',
     tip: 'Intentá juntar las palabras en grupos, como si estuvieras hablando. Eso hace que la lectura suene más natural.',
   },
   silabeo: {
-    icon: '✂️',
+    icon: <HiScissors size={20} />,
     title: 'Lectura en sílabas',
     tip: 'En vez de separar las sílabas (car-pin-cho), tratá de decir la palabra entera de corrido: carpincho.',
   },
   velocidad_alta_con_errores: {
-    icon: '⚡',
+    icon: <HiBolt size={20} />,
     title: 'Velocidad alta',
     tip: 'Leíste rápido pero con algunos errores. Intentá bajar un poquito la velocidad para leer más seguro.',
   },
@@ -37,38 +41,38 @@ const ALERTA_FLUIDEZ_INFO: Record<string, { icon: string; title: string; tip: st
 
 /* ---------- per-type styling ---------- */
 
-const TIPO_CONFIG: Record<string, { label: string; icon: string; borderColor: string; bgColor: string; textColor: string }> = {
+const TIPO_CONFIG: Record<string, { label: string; icon: React.ReactNode; borderColor: string; bgColor: string; textColor: string }> = {
   sustitucion: {
     label: 'Leíste una palabra diferente',
-    icon: '🔄',
+    icon: <HiArrowPath size={13} />,
     borderColor: '#fbbf24',
     bgColor: '#fffbeb',
     textColor: '#92400e',
   },
   omision: {
     label: 'Te saltaste una palabra',
-    icon: '⏭️',
+    icon: <HiChevronDoubleRight size={13} />,
     borderColor: '#60a5fa',
     bgColor: '#eff6ff',
     textColor: '#1e40af',
   },
   repeticion: {
     label: 'Repetiste una palabra',
-    icon: '🔁',
+    icon: <HiArrowUturnRight size={13} />,
     borderColor: '#fb923c',
     bgColor: '#fff7ed',
     textColor: '#9a3412',
   },
   pronunciacion: {
     label: 'Pronunciaste diferente',
-    icon: '🗣️',
+    icon: <HiSpeakerWave size={13} />,
     borderColor: '#a78bfa',
     bgColor: '#f5f3ff',
     textColor: '#5b21b6',
   },
   autocorreccion: {
     label: '¡Te corregiste solo!',
-    icon: '✅',
+    icon: <HiCheckCircle size={13} />,
     borderColor: '#4ade80',
     bgColor: '#f0fdf4',
     textColor: '#166534',
@@ -98,7 +102,7 @@ function ErrorCard({ err, index }: { err: AudioCorrectionErrorAlumno; index: num
         background: `${cfg.borderColor}33`, borderRadius: 6,
         padding: '2px 8px', marginBottom: 8,
       }}>
-        <span>{cfg.icon}</span> {cfg.label}
+        {cfg.icon} {cfg.label}
       </div>
 
       {/* Main error description */}
@@ -119,9 +123,8 @@ function ErrorCard({ err, index }: { err: AudioCorrectionErrorAlumno; index: num
           <>Repetiste <span style={{ color: '#ea580c' }}>"{err.palabra_original}"</span></>
         )}
         {err.tipo === 'autocorreccion' && (
-          <>Te trabaste en <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span> pero lo corregiste 💪</>
+          <>Te trabaste en <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span> pero lo corregiste</>
         )}
-        {/* Fallback for any unknown type */}
         {!['sustitucion', 'pronunciacion', 'omision', 'repeticion', 'autocorreccion'].includes(err.tipo) && err.lo_que_leyo && (
           <>Dijiste <span style={{ color: '#dc2626' }}>"{err.lo_que_leyo}"</span> en vez de <span style={{ color: '#16a34a' }}>"{err.palabra_original}"</span></>
         )}
@@ -164,8 +167,8 @@ export function CorreccionLectura() {
   }, [submissionId]);
 
   if (loading) return (
-    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 14 }}>
-      Analizando tu lectura... 🎙️
+    <div style={{ textAlign: 'center', padding: '80px 0', color: '#6b7280', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <HiMicrophone size={16} /> Analizando tu lectura...
     </div>
   );
 
@@ -176,7 +179,6 @@ export function CorreccionLectura() {
     </div>
   );
 
-  // Separate autocorrections (positive) from real errors
   const realErrors = alumno.errores.filter((e) => e.tipo !== 'autocorreccion');
   const autoCorrections = alumno.errores.filter((e) => e.tipo === 'autocorreccion');
 
@@ -185,14 +187,15 @@ export function CorreccionLectura() {
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <HiMicrophone size={14} color="#16a34a" />
           <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', letterSpacing: '0.08em' }}>
-            🎙️ CORRECCIÓN DE LECTURA
+            CORRECCIÓN DE LECTURA
           </span>
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>¡Mirá tu corrección!</h1>
       </div>
 
-      {/* Feedback — refuerzo positivo */}
+      {/* Feedback */}
       <div style={{
         background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
         borderRadius: 16, padding: '24px 28px',
@@ -204,7 +207,7 @@ export function CorreccionLectura() {
         </p>
       </div>
 
-      {/* Autocorrections — shown as positive */}
+      {/* Autocorrections */}
       {autoCorrections.length > 0 && (
         <div style={{ background: '#f0fdf4', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #bbf7d0' }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: '#166534', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -216,7 +219,7 @@ export function CorreccionLectura() {
         </div>
       )}
 
-      {/* Real errors — grouped */}
+      {/* Real errors */}
       {realErrors.length > 0 && (
         <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -228,14 +231,16 @@ export function CorreccionLectura() {
         </div>
       )}
 
-      {/* No errors — perfect read */}
+      {/* Perfect read */}
       {alumno.errores.length === 0 && (
         <div style={{
           background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)',
           borderRadius: 16, padding: '28px', marginBottom: 20,
           textAlign: 'center', border: '1px solid #a7f3d0',
         }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🌟</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: '#065f46' }}>
+            <HiStar size={40} />
+          </div>
           <p style={{ fontSize: 18, fontWeight: 700, color: '#065f46' }}>¡Lectura perfecta!</p>
           <p style={{ fontSize: 14, color: '#047857' }}>No se detectaron errores. ¡Seguí así!</p>
         </div>
@@ -245,7 +250,7 @@ export function CorreccionLectura() {
       {(alumno.alertas_fluidez ?? []).length > 0 && (
         <div style={{ background: '#fefce8', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 20, border: '1px solid #fde68a' }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-            📖 Aspectos de tu lectura
+            <HiBookOpen size={18} color="#b45309" /> Aspectos de tu lectura
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {(alumno.alertas_fluidez ?? []).map((alerta, i) => {
@@ -257,7 +262,7 @@ export function CorreccionLectura() {
                   background: '#fffef5', borderRadius: 10, padding: '12px 14px',
                   borderLeft: '3px solid #facc15',
                 }}>
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>{info.icon}</span>
+                  <span style={{ color: '#b45309', flexShrink: 0, marginTop: 1 }}>{info.icon}</span>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: '#78350f', marginBottom: 2 }}>{info.title}</div>
                     <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>{info.tip}</div>

@@ -5,7 +5,7 @@ import { ProtectedRoute } from './router/ProtectedRoute';
 import { Login } from './pages/Login/Login';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Courses } from './pages/Courses/Courses';
-import { Students } from './pages/Students/Students';
+import { CoursePage } from './pages/CoursePage/CoursePage';
 import { StudentDetail } from './pages/StudentDetail/StudentDetail';
 import { ActivityDetail } from './pages/ActivityDetail/ActivityDetail';
 import { Inicio } from './pages/alumno/Inicio/Inicio';
@@ -15,6 +15,16 @@ import { TareaLectura } from './pages/alumno/TareaLectura/TareaLectura';
 import { CorreccionEscritura } from './pages/alumno/CorreccionEscritura/CorreccionEscritura';
 import { CorreccionLectura } from './pages/alumno/CorreccionLectura/CorreccionLectura';
 import { ChatCopiloto } from './pages/alumno/ChatCopiloto/ChatCopiloto';
+
+function TaskDetailPlaceholder() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 320, gap: 12 }}>
+      <span style={{ fontSize: 40 }}>🚧</span>
+      <p style={{ fontSize: 18, fontWeight: 600, color: '#111827' }}>Próximamente</p>
+      <p style={{ fontSize: 14, color: '#6b7280' }}>El detalle de la tarea estará disponible en una próxima versión.</p>
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -32,7 +42,9 @@ export default function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:courseId/students" element={<Students />} />
+          <Route path="/courses/:courseId" element={<CoursePage />} />
+          <Route path="/courses/:courseId/students" element={<Navigate to=".." relative="path" replace />} />
+          <Route path="/courses/:courseId/tasks/:taskId" element={<TaskDetailPlaceholder />} />
           <Route path="/students/:studentId" element={<StudentDetail />} />
           <Route path="/students/:studentId/activities/:activityId" element={<ActivityDetail />} />
         </Route>

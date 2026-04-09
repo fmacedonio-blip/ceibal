@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { HiArrowLeft, HiPhoto, HiTrash, HiPaperAirplane } from 'react-icons/hi2';
+import { HiArrowLeft, HiPhoto, HiTrash, HiPaperAirplane, HiPencil } from 'react-icons/hi2';
 import { getMe, getTasks, submitWriting } from '../../../api/alumno';
 import { useAuthStore } from '../../../store/auth';
 import type { Task } from '../../../types/alumno';
@@ -75,7 +75,7 @@ export function TareaEscritura() {
       {/* Task header */}
       <div style={{ background: '#fff', borderRadius: 16, padding: '24px 28px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: '#3b82f6', letterSpacing: '0.06em', marginBottom: 6 }}>
-          ✏️ TAREA DE ESCRITURA
+          <HiPencil size={12} style={{ marginRight: 4 }} /> TAREA DE ESCRITURA
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginBottom: 8 }}>{task.name}</h1>
         {task.description && (
