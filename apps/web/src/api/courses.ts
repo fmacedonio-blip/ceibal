@@ -31,6 +31,7 @@ export async function createTask(
     type: 'lectura' | 'escritura';
     description?: string;
     reading_text?: string;
+    evaluation_criteria?: string;
   }
 ): Promise<{ tasks_created: number }> {
   const res = await apiClient.post<{ tasks_created: number }>(

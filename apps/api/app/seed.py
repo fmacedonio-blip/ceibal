@@ -1,7 +1,7 @@
 """
 Seed script — populates the database with MVP fixtures.
 Run with: python -m app.seed (from apps/api/)
-Idempotent: truncates all tables before inserting.
+Idempotent: skips insertion if data already exists (does NOT truncate).
 """
 
 import uuid
@@ -49,11 +49,10 @@ MOCK_ALERTS = [
 def seed() -> None:
     db = SessionLocal()
     try:
-        # Truncate in FK-safe order, resetting sequences for deterministic IDs
-        db.execute(__import__("sqlalchemy").text(
-            "TRUNCATE activities, ai_diagnoses, alerts, students, courses, users RESTART IDENTITY CASCADE"
-        ))
-        db.commit()
+        # Skip if already seeded — preserves data created via the UI (tasks, submissions, etc.)
+        if db.query(User).filter(User.sub == "dev-docente-001").first():
+            print("Seed ya aplicado, saltando.")
+            return
 
         # Teacher user
         teacher = User(sub="dev-docente-001", name="Ana Martínez", role="docente", email="docente@ceibal.edu.uy")

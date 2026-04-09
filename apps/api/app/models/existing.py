@@ -78,6 +78,7 @@ class Activity(Base):
     subject = Column(String, nullable=False, default="Lengua")
     reading_text = Column(Text, nullable=True)  # text to read aloud (only for type=lectura)
     submission_id = Column(UUID(as_uuid=True), nullable=True)
+    evaluation_criteria = Column(Text, nullable=True)
 
     student = relationship("Student", back_populates="activities")
 

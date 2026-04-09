@@ -144,6 +144,7 @@ class CreateTaskBody(BaseModel):
     type: str
     description: str | None = None
     reading_text: str | None = None
+    evaluation_criteria: str | None = None
 
 
 @router.post("/courses/{course_id}/tasks", status_code=status.HTTP_201_CREATED)
@@ -169,6 +170,7 @@ def create_course_task(
             type=body.type,
             description=body.description,
             reading_text=body.reading_text,
+            evaluation_criteria=body.evaluation_criteria,
             subject="Lengua",
             status="NO_ENTREGADO",
             date=today,

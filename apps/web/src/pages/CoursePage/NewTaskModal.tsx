@@ -97,6 +97,7 @@ export function NewTaskModal({ isOpen, onClose, courseName, courseId, onCreated 
         type: selectedType,
         description: selectedType === 'escritura' ? mainText : undefined,
         reading_text: selectedType === 'lectura' ? mainText : undefined,
+        evaluation_criteria: criteria.trim() || undefined,
       });
       onCreated?.();
       handleClose();

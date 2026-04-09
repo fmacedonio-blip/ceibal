@@ -74,6 +74,7 @@ class Activity(Base):
     reading_text = Column(Text, nullable=True)
     subject = Column(String, nullable=True)
     submission_id = Column(UUID, nullable=True)
+    evaluation_criteria = Column(Text, nullable=True)
 
     student = relationship("Student", back_populates="activities")
 

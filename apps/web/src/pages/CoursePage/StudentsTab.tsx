@@ -97,7 +97,7 @@ export function StudentsTab({ courseId }: Props) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD', 'ACCIONES'].map((h) => (
+              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD'].map((h) => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
                   {h}
                 </th>
@@ -106,7 +106,13 @@ export function StudentsTab({ courseId }: Props) {
           </thead>
           <tbody>
             {(data?.students ?? []).map((student) => (
-              <tr key={student.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+              <tr
+                key={student.id}
+                onClick={() => navigate(`/students/${student.id}`)}
+                style={{ borderTop: '1px solid #f3f4f6', cursor: 'pointer' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+              >
                 <td style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Avatar name={student.name} size={32} fontSize={11} />
@@ -130,14 +136,6 @@ export function StudentsTab({ courseId }: Props) {
                 </td>
                 <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280' }}>
                   {student.last_activity || '—'}
-                </td>
-                <td style={{ padding: '14px 16px' }}>
-                  <button
-                    onClick={() => navigate(`/students/${student.id}`)}
-                    style={{ color: '#00b89c', background: 'none', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    Ver detalle
-                  </button>
                 </td>
               </tr>
             ))}
