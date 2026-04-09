@@ -94,8 +94,8 @@ export function Students() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD', 'ACCIONES'].map((h) => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
+              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD', 'ACCIONES'].map((h, i) => (
+                <th key={h} style={{ padding: '12px 16px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
                   {h}
                 </th>
               ))}
@@ -110,17 +110,17 @@ export function Students() {
                     <span style={{ fontSize: 14, color: '#111827', fontWeight: 500 }}>{student.name}</span>
                   </div>
                 </td>
-                <td style={{ padding: '14px 16px' }}><AverageBar value={student.average} /></td>
-                <td style={{ padding: '14px 16px' }}>
+                <td style={{ padding: '14px 16px', textAlign: 'center' }}><AverageBar value={student.average} /></td>
+                <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                   <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>
                     {student.tasks_completed}/{student.tasks_total}
                   </div>
-                  <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, width: 80 }}>
+                  <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, width: 80, margin: '0 auto' }}>
                     <div style={{ height: 4, borderRadius: 2, background: '#00b89c', width: `${(student.tasks_completed / student.tasks_total) * 100}%` }} />
                   </div>
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280' }}>{student.last_activity}</td>
-                <td style={{ padding: '14px 16px' }}>
+                <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>{student.last_activity}</td>
+                <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                   <button
                     onClick={() => navigate(`/students/${student.id}`)}
                     style={{ color: '#00b89c', background: 'none', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}

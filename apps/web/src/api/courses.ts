@@ -24,6 +24,41 @@ export async function getCourseTasksList(courseId: string): Promise<{
   return res.data;
 }
 
+export interface TaskMetrics {
+  ppm?: number | null;
+  precision?: number | null;
+  total_errors?: number | null;
+  spelling_errors?: number | null;
+  concordance_errors?: number | null;
+  requires_review: boolean;
+}
+
+export interface TaskStudentRow {
+  student_id: number;
+  name: string;
+  status: 'COMPLETADA' | 'NO_ENTREGADO';
+  metrics: TaskMetrics | null;
+}
+
+export interface TaskDetailResponse {
+  task: {
+    name: string;
+    type: 'lectura' | 'escritura';
+    date: string;
+    description: string | null;
+    reading_text: string | null;
+    evaluation_criteria: string | null;
+  };
+  students: TaskStudentRow[];
+}
+
+export async function getTaskStudents(courseId: string, taskId: string): Promise<TaskDetailResponse> {
+  const res = await apiClient.get<TaskDetailResponse>(
+    `/api/v1/courses/${courseId}/tasks/${taskId}/students`
+  );
+  return res.data;
+}
+
 export async function createTask(
   courseId: number,
   payload: {

@@ -8,6 +8,7 @@ from app.auth.dependencies import get_current_user
 from app.auth.jwt import decode_token
 from app.database import get_db
 from app.models import Activity, Course, Student, User
+from app.models.submission import Submission
 
 router = APIRouter(prefix="/api/v1", tags=["courses"])
 
@@ -180,3 +181,75 @@ def create_course_task(
 
     db.commit()
     return {"tasks_created": len(students)}
+
+
+@router.get("/courses/{course_id}/tasks/{task_id}/students")
+def get_task_detail(
+    course_id: int,
+    task_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict:
+    db_user = _get_teacher(request, db)
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course or not db_user or course.teacher_id != db_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+    # Load the reference activity to get name+type
+    ref_activity = db.query(Activity).filter(Activity.id == task_id).first()
+    if not ref_activity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+    students = db.query(Student).filter(Student.course_id == course_id).all()
+
+    rows = []
+    for student in students:
+        activity = (
+            db.query(Activity)
+            .filter(
+                Activity.student_id == student.id,
+                Activity.name == ref_activity.name,
+                Activity.type == ref_activity.type,
+            )
+            .first()
+        )
+
+        metrics = None
+        if activity and activity.status == "COMPLETADA" and activity.submission_id:
+            sub = db.query(Submission).filter(Submission.id == activity.submission_id).first()
+            if sub:
+                ai = sub.ai_result or {}
+                if ref_activity.type == "lectura":
+                    ppm = ai.get("ppm")
+                    precision = ai.get("precision")
+                    metrics = {
+                        "ppm": round(ppm) if ppm is not None else None,
+                        "precision": round(precision) if precision is not None else None,
+                        "requires_review": sub.requires_review,
+                    }
+                else:
+                    metrics = {
+                        "total_errors": sub.total_errors,
+                        "spelling_errors": sub.spelling_errors,
+                        "concordance_errors": sub.concordance_errors,
+                        "requires_review": sub.requires_review,
+                    }
+
+        rows.append({
+            "student_id": student.id,
+            "name": student.name,
+            "status": activity.status if activity else "NO_ENTREGADO",
+            "metrics": metrics,
+        })
+
+    return {
+        "task": {
+            "name": ref_activity.name,
+            "type": ref_activity.type,
+            "date": ref_activity.date,
+            "description": ref_activity.description,
+            "reading_text": ref_activity.reading_text,
+            "evaluation_criteria": ref_activity.evaluation_criteria,
+        },
+        "students": rows,
+    }

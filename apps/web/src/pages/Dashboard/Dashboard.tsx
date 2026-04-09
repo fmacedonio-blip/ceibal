@@ -143,8 +143,8 @@ export function Dashboard() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#f9fafb' }}>
-                {['ALUMNO', 'ACTIVIDAD', 'FECHA', 'ESTADO'].map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
+                {['ALUMNO', 'ACTIVIDAD', 'FECHA', 'ESTADO'].map((h, i) => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
                     {h}
                   </th>
                 ))}
@@ -161,9 +161,9 @@ export function Dashboard() {
                         <span style={{ fontSize: 14, color: '#111827' }}>{row.student_name}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', fontSize: 14, color: '#374151' }}>{row.activity}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280', whiteSpace: 'nowrap' }}>{row.date}</td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 14, color: '#374151' }}>{row.activity}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280', whiteSpace: 'nowrap' }}>{row.date}</td>
+                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <span style={{
                         background: st.bg, color: st.color,
                         padding: '4px 10px', borderRadius: 20,

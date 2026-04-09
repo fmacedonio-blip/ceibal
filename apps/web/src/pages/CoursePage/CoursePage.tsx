@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { StudentsTab } from './StudentsTab';
 import { TasksTab } from './TasksTab';
 import { NewTaskModal } from './NewTaskModal';
@@ -16,7 +16,10 @@ const COURSE_NAME = '4to A — Turno Matutino';
 
 export function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('alumnos');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<ActiveTab>(
+    searchParams.get('tab') === 'tareas' ? 'tareas' : 'alumnos'
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 

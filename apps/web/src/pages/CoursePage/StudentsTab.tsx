@@ -97,8 +97,8 @@ export function StudentsTab({ courseId }: Props) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f9fafb' }}>
-              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD'].map((h) => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
+              {['NOMBRE DEL ALUMNO', 'PROMEDIO', 'TAREAS RESUELTAS', 'ÚLTIMA ACTIVIDAD'].map((h, i) => (
+                <th key={h} style={{ padding: '12px 16px', textAlign: i === 0 ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#9ca3af', letterSpacing: '0.05em' }}>
                   {h}
                 </th>
               ))}
@@ -119,8 +119,8 @@ export function StudentsTab({ courseId }: Props) {
                     <span style={{ fontSize: 14, color: '#111827', fontWeight: 500 }}>{student.name}</span>
                   </div>
                 </td>
-                <td style={{ padding: '14px 16px' }}><AverageBar value={student.average} /></td>
-                <td style={{ padding: '14px 16px' }}>
+                <td style={{ padding: '14px 16px', textAlign: 'center' }}><AverageBar value={student.average} /></td>
+                <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                   {student.tasks_total === 0 ? (
                     <span style={{ fontSize: 13, color: '#9ca3af' }}>—</span>
                   ) : (
@@ -134,7 +134,7 @@ export function StudentsTab({ courseId }: Props) {
                     </>
                   )}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280' }}>
+                <td style={{ padding: '14px 16px', textAlign: 'center', fontSize: 13, color: '#6b7280' }}>
                   {student.last_activity || '—'}
                 </td>
               </tr>
