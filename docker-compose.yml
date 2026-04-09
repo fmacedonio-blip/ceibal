@@ -10,7 +10,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ceibal} -d ceibal_dev"]
+      test:
+        ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ceibal} -d ceibal_dev"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -19,7 +20,7 @@ services:
     build:
       context: ./apps/api
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ceibal}:${POSTGRES_PASSWORD:-ceibal_dev_pass}@postgres:5432/ceibal_dev}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ceibal}:${POSTGRES_PASSWORD:-ceibal_dev_pass}@postgres:5432/ceibal_dev
       ENV: ${ENV:-development}
       CORS_ORIGINS: "http://localhost,http://localhost:80"
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
@@ -29,6 +30,7 @@ services:
       AWS_REGION: ${AWS_REGION:-us-east-1}
       COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID}
       COGNITO_APP_CLIENT_ID: ${COGNITO_APP_CLIENT_ID}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8000:8000"
     depends_on:
