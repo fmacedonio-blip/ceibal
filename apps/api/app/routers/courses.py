@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_docente
 from app.database import get_db
 from app.models import Activity, Course, Student, User
 from app.models.submission import Submission
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1", tags=["courses"])
 
 @router.get("/courses")
 def list_courses(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> list:
     courses = db.query(Course).filter(Course.teacher_id == current_user.id).all()
@@ -42,7 +42,7 @@ def list_students(
     search: str = "",
     page: int = 1,
     limit: int = 6,
-    _user: User = Depends(get_current_user),
+    _user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     query = db.query(Student).filter(Student.course_id == course_id)
@@ -76,7 +76,7 @@ def list_students(
 @router.get("/courses/{course_id}/tasks")
 def list_course_tasks(
     course_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> list:
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -129,7 +129,7 @@ class CreateTaskBody(BaseModel):
 def create_course_task(
     course_id: int,
     body: CreateTaskBody,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     course = db.query(Course).filter(Course.id == course_id).first()
@@ -162,7 +162,7 @@ def create_course_task(
 def get_task_detail(
     course_id: int,
     task_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     course = db.query(Course).filter(Course.id == course_id).first()

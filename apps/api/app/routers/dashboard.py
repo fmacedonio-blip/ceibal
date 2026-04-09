@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_docente
 from app.database import get_db
 from app.models import Activity, Alert, Course, Student, User
 
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
 @router.get("/dashboard")
 def get_dashboard(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_docente),
     db: Session = Depends(get_db),
 ) -> dict:
     teacher_id = current_user.id

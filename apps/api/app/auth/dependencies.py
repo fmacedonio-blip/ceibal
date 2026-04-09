@@ -11,6 +11,7 @@ from app.models import User
 _bearer = HTTPBearer(auto_error=True)
 
 VALID_ROLES = {"docente", "alumno", "director", "inspector"}
+DOCENTE_ROLES = {"docente", "director", "inspector"}
 
 
 def get_current_user(
@@ -50,3 +51,21 @@ def get_current_user(
         db.refresh(user)
 
     return user
+
+
+def require_docente(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in DOCENTE_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to docentes",
+        )
+    return current_user
+
+
+def require_alumno(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "alumno":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access restricted to alumnos",
+        )
+    return current_user

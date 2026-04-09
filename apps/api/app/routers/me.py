@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import require_alumno
 from app.database import get_db
 from app.models import Activity, Course, Student, User
 
@@ -10,11 +10,6 @@ router = APIRouter(prefix="/api/v1", tags=["alumno"])
 
 def _get_student(current_user: User, db: Session) -> Student:
     """Resolve the Student record for the logged-in alumno via email lookup."""
-    if current_user.role != "alumno":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Endpoint only available for alumno role",
-        )
     student = db.query(Student).filter(Student.email == current_user.email).first()
     if not student:
         raise HTTPException(
@@ -25,7 +20,7 @@ def _get_student(current_user: User, db: Session) -> Student:
 
 
 @router.get("/me")
-def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+def get_me(current_user: User = Depends(require_alumno), db: Session = Depends(get_db)) -> dict:
     """Return the logged-in alumno's profile."""
     student = _get_student(current_user, db)
     course = db.query(Course).filter(Course.id == student.course_id).first()
@@ -43,7 +38,7 @@ def get_me(current_user: User = Depends(get_current_user), db: Session = Depends
 
 
 @router.get("/me/tasks")
-def get_my_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list:
+def get_my_tasks(current_user: User = Depends(require_alumno), db: Session = Depends(get_db)) -> list:
     """Return all tasks (activities) assigned to the logged-in alumno."""
     student = _get_student(current_user, db)
     activities = (

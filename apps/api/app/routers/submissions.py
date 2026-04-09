@@ -8,7 +8,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 
+from app.auth.dependencies import get_current_user, require_alumno, require_docente
 from app.database_async import get_async_db
+from app.models import User
 from app.schemas.submission import (
     AudioCorrectionResponse,
     AudioSubmissionAnalyzeResponse,
@@ -95,6 +97,7 @@ async def analyze_submission(
     grade: int = Form(...),
     student_id: uuid.UUID = Form(...),
     activity_id: int = Form(None),
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> SubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -155,6 +158,7 @@ async def analyze_submission_aws(
     student_id: uuid.UUID = Form(...),
     modelo: str = Form(AWS_DEFAULT_MODEL),
     activity_id: int = Form(None),
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> SubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -232,6 +236,7 @@ async def analyze_audio_submission(
     nombre: str = Form(...),
     duracion_seg: Optional[float] = Form(None),  # sent by frontend to bypass webm metadata issue
     activity_id: int = Form(None),
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -295,6 +300,7 @@ async def analyze_audio_submission_aws(
     modelo: str = Form(AWS_AUDIO_DEFAULT_MODEL),
     duracion_seg: Optional[float] = Form(None),
     activity_id: int = Form(None),
+    _user: User = Depends(require_alumno),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
     if file.content_type not in ALLOWED_AUDIO_TYPES:
@@ -375,6 +381,7 @@ async def analyze_audio_submission_aws(
 @router.get("/submissions/{submission_id}", response_model=SubmissionDetailResponse, tags=["submissions"])
 async def get_submission(
     submission_id: uuid.UUID,
+    _user: User = Depends(require_docente),
     db=Depends(get_async_db),
 ) -> SubmissionDetailResponse:
     submission = await submission_service.get_submission(
@@ -391,6 +398,7 @@ async def classroom_dashboard(
     class_id: uuid.UUID,
     desde: date | None = None,
     hasta: date | None = None,
+    _user: User = Depends(require_docente),
     db=Depends(get_async_db),
 ) -> list[DashboardStudentRow]:
     return await submission_service.get_classroom_dashboard(db, class_id, desde, hasta)
@@ -400,6 +408,7 @@ async def classroom_dashboard(
 async def classroom_error_patterns(
     class_id: uuid.UUID,
     dias: int = 30,
+    _user: User = Depends(require_docente),
     db=Depends(get_async_db),
 ) -> list[ErrorPattern]:
     return await submission_service.get_error_patterns(db, class_id, dias)
@@ -408,6 +417,7 @@ async def classroom_error_patterns(
 @router.get("/students/{student_id}/progress", response_model=list[ProgressPoint], tags=["submissions"])
 async def student_progress(
     student_id: uuid.UUID,
+    _user: User = Depends(require_docente),
     db=Depends(get_async_db),
 ) -> list[ProgressPoint]:
     return await submission_service.get_student_progress(db, student_id)
@@ -419,6 +429,7 @@ async def student_progress(
 )
 async def get_correction(
     submission_id: uuid.UUID,
+    _user: User = Depends(get_current_user),
     db=Depends(get_async_db),
 ):
     """Return structured correction data split into alumno and docente layers."""
@@ -529,6 +540,7 @@ async def get_correction(
 @router.get("/submissions/{submission_id}/image", tags=["submissions"])
 async def get_submission_image(
     submission_id: uuid.UUID,
+    _user: User = Depends(get_current_user),
     db=Depends(get_async_db),
 ) -> Response:
     """Return the original image submitted by the student."""
