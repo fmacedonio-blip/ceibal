@@ -91,6 +91,7 @@ class AiDiagnosis(Base):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     text = Column(Text, nullable=False)
     tags = Column(JSON, nullable=False, default=list)
+    generated_at = Column(DateTime, nullable=True)
 
     student = relationship("Student", back_populates="ai_diagnosis")
 

@@ -36,6 +36,11 @@ from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
 
 
+def _cap(s: str) -> str:
+    """Capitalize first character of a string, leaving the rest unchanged."""
+    return s[0].upper() + s[1:] if s else s
+
+
 def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
     """Wrap each detected error word in the transcription with a <mark> tag."""
     if not transcripcion or not errores:
@@ -409,7 +414,7 @@ async def get_correction(
         {
             "texto": e.get("text", ""),
             "correccion": e.get("correccion_alumno", ""),
-            "explicacion": e.get("explicacion_pedagogica", ""),
+            "explicacion": _cap(e.get("explicacion_pedagogica", "")),
         }
         for e in errores_agrupados
     ]
@@ -417,14 +422,14 @@ async def get_correction(
         {
             "texto": e.get("text", ""),
             "tipo": e.get("error_type", ""),
-            "explicacion_tecnica": e.get("explicacion_docente", ""),
+            "explicacion_tecnica": _cap(e.get("explicacion_docente", "")),
             "ocurrencias": e.get("ocurrencias", 1),
             "confianza": e.get("confianza_lectura"),
         }
         for e in errores_agrupados
     ]
     consejos_hw = [
-        p.get("explicacion_pedagogica", p.get("descripcion", ""))
+        _cap(p.get("explicacion_pedagogica", p.get("descripcion", "")))
         for p in ai.get("puntos_de_mejora", [])
         if p.get("explicacion_pedagogica") or p.get("descripcion")
     ]
@@ -447,9 +452,12 @@ async def get_correction(
             "consejos": consejos_hw,
         },
         docente={
-            "razonamiento": ai.get("razonamiento_docente", ""),
+            "razonamiento": _cap(ai.get("razonamiento_docente", "")),
             "errores": errores_docente_hw,
-            "puntos_de_mejora": ai.get("puntos_de_mejora", []),
+            "puntos_de_mejora": [
+                {**p, "explicacion_docente": _cap(p.get("explicacion_docente", "")), "explicacion_pedagogica": _cap(p.get("explicacion_pedagogica", ""))}
+                for p in ai.get("puntos_de_mejora", [])
+            ],
             "requires_review": submission.requires_review,
         },
     )

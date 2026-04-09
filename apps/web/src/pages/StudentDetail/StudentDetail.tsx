@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { HiEnvelope } from 'react-icons/hi2';
-import { getStudent } from '../../api/students';
+import { HiEnvelope, HiArrowPath } from 'react-icons/hi2';
+import { generateDiagnosis, getStudent } from '../../api/students';
 import { Avatar } from '../../components/Avatar/Avatar';
-import type { StudentDetail as StudentDetailType } from '../../types/api';
+import type { AiDiagnosis, StudentDetail as StudentDetailType } from '../../types/api';
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
   CORREGIDA:             { bg: '#dcfce7', color: '#166534', label: 'Corregida' },
@@ -14,15 +14,45 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }
 };
 const DEFAULT_STATUS_CONFIG = { bg: '#f3f4f6', color: '#6b7280', label: 'Desconocido' };
 
+
+function formatGeneratedAt(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
 export function StudentDetail() {
   const { studentId } = useParams<{ studentId: string }>();
   const [student, setStudent] = useState<StudentDetailType | null>(null);
   const [error, setError] = useState(false);
+  const [diagnosis, setDiagnosis] = useState<AiDiagnosis | null>(null);
+  const [generatingDiagnosis, setGeneratingDiagnosis] = useState(false);
+  const [diagnosisError, setDiagnosisError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!studentId) return;
-    getStudent(studentId).then(setStudent).catch(() => setError(true));
+    getStudent(studentId).then((s) => {
+      setStudent(s);
+      setDiagnosis(s.ai_diagnosis);
+      // Auto-generate if student has completed activities but no diagnosis yet
+      if (!s.ai_diagnosis.text && s.tasks_completed > 0) {
+        handleGenerateDiagnosis(studentId);
+      }
+    }).catch(() => setError(true));
   }, [studentId]);
+
+  async function handleGenerateDiagnosis(id: string) {
+    setGeneratingDiagnosis(true);
+    setDiagnosisError(null);
+    try {
+      const result = await generateDiagnosis(id);
+      setDiagnosis(result);
+    } catch {
+      setDiagnosisError('No se pudo generar el diagnóstico. Intentá de nuevo.');
+    } finally {
+      setGeneratingDiagnosis(false);
+    }
+  }
 
   if (error) return <p style={{ color: '#dc2626', fontSize: 14 }}>Alumno no encontrado.</p>;
   if (!student) return <p style={{ color: '#6b7280', fontSize: 14 }}>Cargando...</p>;
@@ -96,24 +126,77 @@ export function StudentDetail() {
       }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 22, lineHeight: 1 }}>✦</span>
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
-              Diagnóstico IA del Alumno
-            </h3>
-            <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, marginBottom: 12 }}>
-              {student.ai_diagnosis.text}
-            </p>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {student.ai_diagnosis.tags.map((tag) => (
-                <span key={tag} style={{
-                  background: '#fff', border: '1px solid #e5e7eb',
-                  borderRadius: 20, padding: '4px 12px',
-                  fontSize: 12, color: '#374151',
-                }}>
-                  {tag}
-                </span>
-              ))}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>
+                Análisis IA del Alumno
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {diagnosis?.generated_at && (
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                    Generado el {formatGeneratedAt(diagnosis.generated_at)}
+                  </span>
+                )}
+                {student.tasks_completed > 0 && (
+                  <button
+                    onClick={() => handleGenerateDiagnosis(studentId!)}
+                    disabled={generatingDiagnosis}
+                    style={{
+                      background: 'none', border: '1px solid #d1d5db', borderRadius: 8,
+                      padding: '5px 12px', fontSize: 12, cursor: generatingDiagnosis ? 'not-allowed' : 'pointer',
+                      color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6,
+                      opacity: generatingDiagnosis ? 0.6 : 1,
+                    }}
+                  >
+                    <HiArrowPath size={13} style={{ animation: generatingDiagnosis ? 'spin 1s linear infinite' : 'none' }} />
+                    {generatingDiagnosis ? 'Generando...' : 'Actualizar diagnóstico'}
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Sin actividades completadas */}
+            {student.tasks_completed === 0 && (
+              <p style={{ fontSize: 14, color: '#9ca3af', fontStyle: 'italic' }}>
+                Aún no hay actividades completadas para generar un diagnóstico.
+              </p>
+            )}
+
+            {/* Generando por primera vez */}
+            {student.tasks_completed > 0 && generatingDiagnosis && !diagnosis?.text && (
+              <p style={{ fontSize: 14, color: '#9ca3af', fontStyle: 'italic' }}>
+                Analizando el desempeño del alumno...
+              </p>
+            )}
+
+            {/* Error */}
+            {diagnosisError && (
+              <p style={{ fontSize: 13, color: '#dc2626' }}>{diagnosisError}</p>
+            )}
+
+            {/* Contenido del análisis */}
+            {diagnosis?.text && (
+              <>
+                <div style={{ marginTop: 4, marginBottom: 12 }}>
+                  {diagnosis.text.split('\n\n').filter(p => p.trim()).map((paragraph, i) => (
+                    <p key={i} style={{ fontSize: 14, color: '#374151', lineHeight: 1.65, margin: i === 0 ? '0 0 10px' : '0 0 10px' }}>
+                      {paragraph.trim()}
+                    </p>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {diagnosis.tags.map((tag) => (
+                    <span key={tag} style={{
+                      background: '#fff', border: '1px solid #e5e7eb',
+                      borderRadius: 20, padding: '4px 12px',
+                      fontSize: 12, color: '#374151',
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
