@@ -8,7 +8,7 @@ from app.config import settings
 from app.pipelines.handwrite_pipeline_aws.curriculum import get_curriculum_block
 from app.pipelines.handwrite_pipeline_aws.models import OutputCall1, OutputFinal
 from app.pipelines.handwrite_pipeline_aws.session import GatewaySession
-from app.pipelines.handwrite_pipeline.prompts import (
+from app.pipelines.handwrite_pipeline_aws.prompts import (
     SYSTEM_CALL1,
     SYSTEM_CALL2,
     build_call1_prompt_text,
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_METADATA = {
     "agent_max_tokens": 8192,
     "agent_temperature": 0.2,
+    "response_format": {"type": "json_object"},
 }
 
 REQUIRED_KEYS_CALL1 = {"transcripcion", "errores_detectados", "puntos_de_mejora", "ambiguedades_lectura"}
@@ -138,6 +139,8 @@ def call2(
     output_call1: OutputCall1,
     curso: int,
     conocimiento_curricular: dict[str, Any],
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> OutputFinal:
     """
     Second gateway call: group errors + generate pedagogical feedback.
@@ -146,7 +149,10 @@ def call2(
     Returns the final OutputFinal with grouped errors and teacher/student feedback.
     """
     bloque_curricular = get_curriculum_block(curso, conocimiento_curricular)
-    user_content = build_user_message_call2(output_call1.model_dump(), curso, bloque_curricular)
+    user_content = build_user_message_call2(
+        output_call1.model_dump(), curso, bloque_curricular,
+        consigna=consigna, evaluation_criteria=evaluation_criteria,
+    )
 
     logger.info("Call 2 | modelo=%s errores_call1=%d", session.model, len(output_call1.errores_detectados))
 
@@ -159,7 +165,7 @@ def call2(
     except Exception as e:
         raise RuntimeError(f"Call 2 falló con modelo '{session.model}': {e}") from e
 
-    logger.info("Call 2 respuesta raw (%d chars): %s", len(raw), raw[:200])
+    logger.info("Call 2 raw (%d chars): %s", len(raw), raw[:200])
 
     data = _parse_json(raw, "Call 2", session.model)
 

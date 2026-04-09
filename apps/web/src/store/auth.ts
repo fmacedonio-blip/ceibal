@@ -26,10 +26,12 @@ let initialUser: AuthUser | null = null;
 if (storedToken) {
   try {
     const payload = JSON.parse(atob(storedToken.split(".")[1]));
+    const groups: string[] = payload["cognito:groups"] ?? [];
+    const role = payload.role ?? groups[0] ?? "docente";
     initialUser = {
       id: payload.sub,
-      name: payload.name,
-      role: payload.role,
+      name: payload.name ?? payload["cognito:username"] ?? payload.sub,
+      role,
       ...(payload.student_uuid && { student_uuid: payload.student_uuid }),
       ...(payload.student_id != null && { student_id: payload.student_id }),
     };

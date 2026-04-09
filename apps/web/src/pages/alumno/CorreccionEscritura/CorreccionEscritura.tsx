@@ -2,21 +2,23 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   HiChatBubbleLeftRight, HiHome, HiCheckCircle,
-  HiLightBulb, HiWrenchScrewdriver,
+  HiLightBulb, HiWrenchScrewdriver, HiArrowPath,
 } from 'react-icons/hi2';
 import { getCorrection } from '../../../api/alumno';
 import type { WritingCorrectionAlumno } from '../../../types/alumno';
 
 export function CorreccionEscritura() {
-  useParams<{ taskId: string }>();
+  const { taskId } = useParams<{ taskId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const submissionId = (location.state as { submissionId?: string })?.submissionId;
+  const locationState = location.state as { submissionId?: string; consignaNoCumplida?: boolean } | null;
+  const submissionId = locationState?.submissionId;
 
   const [alumno, setAlumno] = useState<WritingCorrectionAlumno | null>(null);
   const [realSubmissionId, setRealSubmissionId] = useState<string | null>(submissionId ?? null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showConsignaModal, setShowConsignaModal] = useState(locationState?.consignaNoCumplida ?? false);
 
   useEffect(() => {
     if (!submissionId) { setError(true); setLoading(false); return; }
@@ -45,6 +47,84 @@ export function CorreccionEscritura() {
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Modal consigna no cumplida */}
+      {showConsignaModal && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowConsignaModal(false); }}
+        >
+          <div style={{
+            background: '#fff', borderRadius: 24,
+            padding: '36px 32px', maxWidth: 480, width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column', gap: 20,
+            position: 'relative',
+          }}>
+            <button
+              onClick={() => setShowConsignaModal(false)}
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                background: '#f3f4f6', border: 'none', borderRadius: '50%',
+                width: 32, height: 32, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, color: '#6b7280', lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 14px', fontSize: 32,
+                boxShadow: '0 4px 12px rgba(251,191,36,0.3)',
+              }}>
+                💛
+              </div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#1e2939', margin: '0 0 8px' }}>
+                ¡Buen intento!
+              </h2>
+              <p style={{ fontSize: 15, color: '#374151', lineHeight: 1.6, margin: 0 }}>
+                Lo que escribiste no corresponde a la consigna de la tarea. ¡No te preocupes! Podés cerrar este mensaje para ver el análisis, o volver a intentarlo siguiendo la consigna.
+              </p>
+            </div>
+
+            <button
+              onClick={() => navigate(`/alumno/tarea/${taskId}/escritura`)}
+              style={{
+                width: '100%', padding: '14px',
+                borderRadius: 999, border: 'none',
+                background: 'linear-gradient(90deg, #00bba7, #00b8db)',
+                color: '#fff', fontSize: 15, fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,184,219,0.35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontFamily: 'inherit',
+              }}
+            >
+              <HiArrowPath size={18} /> Volver a intentarlo
+            </button>
+
+            <button
+              onClick={() => setShowConsignaModal(false)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: 14, color: '#6b7280', fontFamily: 'inherit', padding: '4px 0',
+              }}
+            >
+              Ver el análisis
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 6 }}>

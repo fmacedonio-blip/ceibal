@@ -31,9 +31,15 @@ from app.services.audio_analyze_aws import analyze as aws_audio_analyze
 from app.pipelines.handwrite_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_DEFAULT_MODEL
 from app.pipelines.audio_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_AUDIO_DEFAULT_MODEL
 from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file
+from app.pipelines.audio_pipeline.client import normalize_to_supported_format
 
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
+
+
+def _cap(s: str) -> str:
+    """Capitalize first character of a string, leaving the rest unchanged."""
+    return s[0].upper() + s[1:] if s else s
 
 
 def _build_transcripcion_html(transcripcion: str, errores: list) -> str:
@@ -59,6 +65,29 @@ ALLOWED_AUDIO_TYPES = {
 SUPPORTED_GRADES = {3, 4, 5, 6}
 
 
+async def _get_activity_context(activity_id: int) -> tuple[str | None, str | None]:
+    """Look up an Activity by ID and return (description, evaluation_criteria).
+
+    Uses a sync session (same approach as _link_activity) since the Activity
+    model lives on the sync ORM.  Returns (None, None) if not found.
+    """
+    import asyncio
+    from app.database import SessionLocal
+    from app.models.existing import Activity
+
+    def _fetch() -> tuple[str | None, str | None]:
+        db_sync = SessionLocal()
+        try:
+            activity = db_sync.query(Activity).filter(Activity.id == activity_id).first()
+            if activity is None:
+                return None, None
+            return activity.description, activity.evaluation_criteria
+        finally:
+            db_sync.close()
+
+    return await asyncio.to_thread(_fetch)
+
+
 @router.post("/submissions/analyze", response_model=SubmissionAnalyzeResponse, tags=["submissions"])
 async def analyze_submission(
     file: UploadFile = File(...),
@@ -77,10 +106,22 @@ async def analyze_submission(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    # Look up the Activity to get the teacher's consigna and evaluation criteria
+    consigna: str | None = None
+    evaluation_criteria: str | None = None
+    if activity_id is not None:
+        consigna, evaluation_criteria = await _get_activity_context(activity_id)
+
     try:
-        output = await hw_service.analyze(image_bytes, file.content_type, grade)
+        output = await hw_service.analyze(
+            image_bytes, file.content_type, grade,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
+        )
     except HandwriteAnalyzeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    consigna_no_cumplida = any(p.tipo == "consigna_no_cumplida" for p in output.puntos_de_mejora)
 
     submission = await submission_service.persist_result(
         db=db,
@@ -92,6 +133,7 @@ async def analyze_submission(
         activity_id=activity_id,
         image_bytes=image_bytes,
         image_content_type=file.content_type,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -100,6 +142,7 @@ async def analyze_submission(
     return SubmissionAnalyzeResponse(
         submission_id=submission.id,
         status=submission.status,
+        consigna_no_cumplida=consigna_no_cumplida,
         **output.model_dump(),
     )
 
@@ -123,6 +166,12 @@ async def analyze_submission_aws(
     if not image_bytes:
         raise HTTPException(status_code=400, detail="Empty file")
 
+    # Look up the Activity to get the teacher's consigna and evaluation criteria
+    consigna: str | None = None
+    evaluation_criteria: str | None = None
+    if activity_id is not None:
+        consigna, evaluation_criteria = await _get_activity_context(activity_id)
+
     # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
     try:
         s3_key, _ = upload_file(image_bytes, file.content_type, filename=file.filename or "image.jpg")
@@ -138,6 +187,8 @@ async def analyze_submission_aws(
             curso=grade,
             modelo=modelo,
             s3_key=s3_key,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
         )
     except HandwriteAnalyzeAwsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -145,6 +196,8 @@ async def analyze_submission_aws(
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    consigna_no_cumplida = any(p.tipo == "consigna_no_cumplida" for p in output.puntos_de_mejora)
 
     submission = await submission_service.persist_result(
         db=db,
@@ -155,6 +208,7 @@ async def analyze_submission_aws(
         output=output,
         s3_key=s3_key,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -163,6 +217,7 @@ async def analyze_submission_aws(
     return SubmissionAnalyzeResponse(
         submission_id=submission.id,
         status=submission.status,
+        consigna_no_cumplida=consigna_no_cumplida,
         **output.model_dump(),
     )
 
@@ -201,6 +256,8 @@ async def analyze_audio_submission(
     ai_result_dict["texto_original"] = texto_original
     ai_result_dict["nombre"] = nombre
 
+    consigna_no_cumplida = output.consigna_no_cumplida
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -211,6 +268,7 @@ async def analyze_audio_submission(
         submission_type="audio",
         ai_result_override=ai_result_dict,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -222,6 +280,7 @@ async def analyze_audio_submission(
         precision=output.precision,
         total_errors=submission.total_errors or 0,
         requires_review=submission.requires_review,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
 
@@ -234,6 +293,7 @@ async def analyze_audio_submission_aws(
     texto_original: str = Form(...),
     nombre: str = Form(...),
     modelo: str = Form(AWS_AUDIO_DEFAULT_MODEL),
+    duracion_seg: Optional[float] = Form(None),
     activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
@@ -250,9 +310,12 @@ async def analyze_audio_submission_aws(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio file")
 
+    # Convert to MP3 before upload so the model receives a universally supported format
+    audio_bytes, audio_content_type = normalize_to_supported_format(audio_bytes, file.content_type)
+
     # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
     try:
-        s3_key, _ = upload_file(audio_bytes, file.content_type, filename=file.filename or "audio.mp3")
+        s3_key, _ = upload_file(audio_bytes, audio_content_type, filename="audio.mp3")
     except EnvironmentError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (RuntimeError, ValueError) as exc:
@@ -261,12 +324,13 @@ async def analyze_audio_submission_aws(
     try:
         output, _session = await aws_audio_analyze(
             audio_bytes=audio_bytes,
-            media_type=file.content_type,
+            media_type=audio_content_type,
             texto_original=texto_original,
             nombre=nombre,
             curso=grade,
             modelo=modelo,
             s3_key=s3_key,
+            duracion_seg=duracion_seg,
         )
     except AudioAnalyzeAwsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -279,6 +343,8 @@ async def analyze_audio_submission_aws(
     ai_result_dict["texto_original"] = texto_original
     ai_result_dict["nombre"] = nombre
 
+    consigna_no_cumplida = output.consigna_no_cumplida
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -290,6 +356,7 @@ async def analyze_audio_submission_aws(
         ai_result_override=ai_result_dict,
         s3_key=s3_key,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -301,6 +368,7 @@ async def analyze_audio_submission_aws(
         precision=output.precision,
         total_errors=submission.total_errors or 0,
         requires_review=submission.requires_review,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
 
@@ -409,7 +477,7 @@ async def get_correction(
         {
             "texto": e.get("text", ""),
             "correccion": e.get("correccion_alumno", ""),
-            "explicacion": e.get("explicacion_pedagogica", ""),
+            "explicacion": _cap(e.get("explicacion_pedagogica", "")),
         }
         for e in errores_agrupados
     ]
@@ -417,14 +485,14 @@ async def get_correction(
         {
             "texto": e.get("text", ""),
             "tipo": e.get("error_type", ""),
-            "explicacion_tecnica": e.get("explicacion_docente", ""),
+            "explicacion_tecnica": _cap(e.get("explicacion_docente", "")),
             "ocurrencias": e.get("ocurrencias", 1),
             "confianza": e.get("confianza_lectura"),
         }
         for e in errores_agrupados
     ]
     consejos_hw = [
-        p.get("explicacion_pedagogica", p.get("descripcion", ""))
+        _cap(p.get("explicacion_pedagogica", p.get("descripcion", "")))
         for p in ai.get("puntos_de_mejora", [])
         if p.get("explicacion_pedagogica") or p.get("descripcion")
     ]
@@ -447,9 +515,12 @@ async def get_correction(
             "consejos": consejos_hw,
         },
         docente={
-            "razonamiento": ai.get("razonamiento_docente", ""),
+            "razonamiento": _cap(ai.get("razonamiento_docente", "")),
             "errores": errores_docente_hw,
-            "puntos_de_mejora": ai.get("puntos_de_mejora", []),
+            "puntos_de_mejora": [
+                {**p, "explicacion_docente": _cap(p.get("explicacion_docente", "")), "explicacion_pedagogica": _cap(p.get("explicacion_pedagogica", ""))}
+                for p in ai.get("puntos_de_mejora", [])
+            ],
             "requires_review": submission.requires_review,
         },
     )

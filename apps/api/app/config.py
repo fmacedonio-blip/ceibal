@@ -20,8 +20,6 @@ class Settings(BaseSettings):
     )
 
     env: str = "development"
-    jwt_secret: str
-    jwt_expire_hours: int = 24
     database_url: str = "postgresql://ceibal:ceibal_dev_pass@localhost:5432/ceibal_dev"
     cors_origins: str = "http://localhost:5173"
     handwrite_pipeline: str = "openrouter"
@@ -32,6 +30,8 @@ class Settings(BaseSettings):
     gateway_file_url: str = ""
     s3_bucket_handwrite: str = "ceibal-gateway-file-uploads-dev"
     aws_region: str = "us-east-1"
+    cognito_user_pool_id: str = ""
+    cognito_app_client_id: str = ""
 
     def model_post_init(self, __context: object) -> None:
         if self.handwrite_pipeline not in _VALID_PIPELINES:
@@ -50,6 +50,16 @@ class Settings(BaseSettings):
     @property
     def is_development(self) -> bool:
         return self.env.lower() == "development"
+
+    @property
+    def cognito_jwks_url(self) -> str:
+        region = self.cognito_user_pool_id.split("_")[0]
+        return f"https://cognito-idp.{region}.amazonaws.com/{self.cognito_user_pool_id}/.well-known/jwks.json"
+
+    @property
+    def cognito_issuer(self) -> str:
+        region = self.cognito_user_pool_id.split("_")[0]
+        return f"https://cognito-idp.{region}.amazonaws.com/{self.cognito_user_pool_id}"
 
 
 settings = Settings()

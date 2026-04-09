@@ -52,6 +52,7 @@ class Student(Base):
     id = Column(Integer, primary_key=True, index=True)
     student_uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True, index=True)
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     average = Column(Float, nullable=False, default=0.0)
     tasks_completed = Column(Integer, nullable=False, default=0)
@@ -91,6 +92,7 @@ class AiDiagnosis(Base):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     text = Column(Text, nullable=False)
     tags = Column(JSON, nullable=False, default=list)
+    generated_at = Column(DateTime, nullable=True)
 
     student = relationship("Student", back_populates="ai_diagnosis")
 

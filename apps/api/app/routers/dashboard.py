@@ -10,25 +10,20 @@ router = APIRouter(prefix="/api/v1", tags=["dashboard"])
 
 @router.get("/dashboard")
 def get_dashboard(
-    user: dict = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
-    db_user = db.query(User).filter(User.sub == user.get("sub")).first()
-    teacher_id = db_user.id if db_user else None
+    teacher_id = current_user.id
 
     # Alerts for this teacher
-    alerts_query = db.query(Alert)
-    if teacher_id:
-        alerts_query = alerts_query.filter(Alert.teacher_id == teacher_id)
+    alerts_query = db.query(Alert).filter(Alert.teacher_id == teacher_id)
     alerts = [
         {"id": a.id, "type": a.type, "severity": a.severity, "message": a.message}
         for a in alerts_query.all()
     ]
 
     # Courses summary (max 2) for this teacher
-    courses_query = db.query(Course)
-    if teacher_id:
-        courses_query = courses_query.filter(Course.teacher_id == teacher_id)
+    courses_query = db.query(Course).filter(Course.teacher_id == teacher_id)
     courses_db = courses_query.limit(2).all()
     courses = []
     for c in courses_db:

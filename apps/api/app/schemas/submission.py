@@ -12,6 +12,7 @@ from app.pipelines.handwrite_pipeline.models import OutputFinal
 class SubmissionAnalyzeResponse(OutputFinal):
     submission_id: uuid.UUID
     status: str
+    consigna_no_cumplida: bool = False
 
 
 class AudioSubmissionAnalyzeResponse(BaseModel):
@@ -23,6 +24,7 @@ class AudioSubmissionAnalyzeResponse(BaseModel):
     precision: float
     total_errors: int
     requires_review: bool
+    consigna_no_cumplida: bool = False
 
 
 class SubmissionDetailResponse(BaseModel):

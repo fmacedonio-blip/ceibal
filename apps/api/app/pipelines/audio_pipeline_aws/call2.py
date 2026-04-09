@@ -5,7 +5,8 @@ from json_repair import repair_json
 
 from app.pipelines.handwrite_pipeline_aws.session import GatewaySession
 from app.pipelines.audio_pipeline.models import OutputCall1Audio, OutputFinalAudio
-from app.pipelines.audio_pipeline.prompts import SYSTEM_CALL2, build_call2_prompt, clasificar_nivel
+from app.pipelines.audio_pipeline.prompts import clasificar_nivel
+from app.pipelines.audio_pipeline_aws.prompts import SYSTEM_CALL2, build_call2_prompt
 
 logger = logging.getLogger(__name__)
 
