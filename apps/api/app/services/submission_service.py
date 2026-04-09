@@ -63,7 +63,7 @@ def _link_activity(activity_id: int, submission_id: uuid.UUID) -> None:
             if activity is None:
                 logger.warning("activity_id=%s not found — skipping activity link", activity_id)
                 return
-            activity.status = "PENDIENTE_DE_REVISION"
+            activity.status = "COMPLETADA"
             activity.submission_id = submission_id
             student = db_sync.query(Student).filter(Student.id == activity.student_id).first()
             if student is not None:

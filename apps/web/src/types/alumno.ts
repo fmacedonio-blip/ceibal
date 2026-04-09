@@ -11,7 +11,7 @@ export interface AlumnoProfile {
 }
 
 export type TaskType = 'escritura' | 'lectura';
-export type TaskStatus = 'NO_ENTREGADO' | 'COMPLETADA' | 'CORREGIDA' | 'PENDIENTE_DE_REVISION' | 'REVISADA';
+export type TaskStatus = 'NO_ENTREGADO' | 'COMPLETADA';
 
 export interface Task {
   id: number;

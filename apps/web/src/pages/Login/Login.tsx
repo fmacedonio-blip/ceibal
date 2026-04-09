@@ -10,6 +10,8 @@ const SEED_STUDENTS = [
   { id: 1, name: 'María Suárez' },
   { id: 2, name: 'Lucas Rodríguez' },
   { id: 3, name: 'Valentina Pérez' },
+  { id: 4, name: 'Sofía García' },
+  { id: 5, name: 'Mateo Ríos' },
 ];
 
 export function Login() {

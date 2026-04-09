@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { Avatar } from '../Avatar/Avatar';
+import logoUrl from '../../assets/logo.svg?url';
 
 export function AlumnoLayout() {
   const { user, logout } = useAuthStore();
@@ -24,19 +25,7 @@ export function AlumnoLayout() {
         justifyContent: 'space-between',
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 32, height: 32,
-            background: '#00b89c',
-            borderRadius: 8,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>C</span>
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>
-            Copiloto Pedagógico
-          </span>
-        </div>
+        <img src={logoUrl} alt="Ceibal" style={{ height: 28, width: 'auto' }} />
 
         {user && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

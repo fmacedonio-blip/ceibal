@@ -7,11 +7,8 @@ import type { ActivityHistory, StudentDetail } from '../../types/api';
 import type { CorrectionResponse, WritingCorrectionResponse, AudioCorrectionResponse } from '../../types/alumno';
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
-  CORREGIDA:             { bg: '#dcfce7', color: '#166534', label: 'Corregida' },
-  COMPLETADA:            { bg: '#dcfce7', color: '#166534', label: 'Completada' },
-  REVISADA:              { bg: '#e0f2fe', color: '#075985', label: 'Revisada' },
-  NO_ENTREGADO:          { bg: '#fee2e2', color: '#991b1b', label: 'No entregado' },
-  PENDIENTE_DE_REVISION: { bg: '#fef3c7', color: '#92400e', label: 'Pendiente de revisión' },
+  COMPLETADA:   { bg: '#dcfce7', color: '#166534', label: 'Completada' },
+  NO_ENTREGADO: { bg: '#fee2e2', color: '#991b1b', label: 'No entregado' },
 };
 const DEFAULT_STATUS_CONFIG = { bg: '#f3f4f6', color: '#6b7280', label: 'Desconocido' };
 

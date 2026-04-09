@@ -115,14 +115,22 @@ export function StudentsTab({ courseId }: Props) {
                 </td>
                 <td style={{ padding: '14px 16px' }}><AverageBar value={student.average} /></td>
                 <td style={{ padding: '14px 16px' }}>
-                  <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>
-                    {student.tasks_completed}/{student.tasks_total}
-                  </div>
-                  <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, width: '100%' }}>
-                    <div style={{ height: 4, borderRadius: 2, background: '#00b89c', width: `${(student.tasks_completed / student.tasks_total) * 100}%` }} />
-                  </div>
+                  {student.tasks_total === 0 ? (
+                    <span style={{ fontSize: 13, color: '#9ca3af' }}>—</span>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 13, color: '#111827', marginBottom: 4 }}>
+                        {student.tasks_completed}/{student.tasks_total}
+                      </div>
+                      <div style={{ height: 4, background: '#e5e7eb', borderRadius: 2, width: '100%' }}>
+                        <div style={{ height: 4, borderRadius: 2, background: '#00b89c', width: `${(student.tasks_completed / student.tasks_total) * 100}%` }} />
+                      </div>
+                    </>
+                  )}
                 </td>
-                <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280' }}>{student.last_activity}</td>
+                <td style={{ padding: '14px 16px', fontSize: 13, color: '#6b7280' }}>
+                  {student.last_activity || '—'}
+                </td>
                 <td style={{ padding: '14px 16px' }}>
                   <button
                     onClick={() => navigate(`/students/${student.id}`)}

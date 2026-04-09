@@ -79,7 +79,7 @@ export interface StudentsResponse {
 }
 
 // Student detail
-export type ActivityDetailStatus = "CORREGIDA" | "NO_ENTREGADO" | "PENDIENTE_DE_REVISION";
+export type ActivityDetailStatus = "NO_ENTREGADO" | "COMPLETADA";
 
 export interface AiDiagnosis {
   text: string;
