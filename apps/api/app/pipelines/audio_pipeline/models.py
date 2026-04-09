@@ -23,6 +23,7 @@ class OutputCall1Audio(BaseModel):
     precision: float = Field(ge=0, le=100)
     errores: List[ErrorLecturaOral] = []
     alertas_fluidez: List[str] = []
+    aspectos_positivos_verificados: List[str] = []
     calidad_audio_baja: bool = False
     notas_calidad: str = ""
 

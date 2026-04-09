@@ -32,7 +32,7 @@ export async function submitWriting(
   form.append('activity_id', String(activityId));
 
   const res = await apiClient.post<{ submission_id: string }>(
-    '/api/v1/submissions/analyze',
+    '/api/v1/submissions/analyze-aws',
     form,
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );
@@ -62,7 +62,7 @@ export async function submitAudio(
   }
 
   const res = await apiClient.post<{ submission_id: string }>(
-    '/api/v1/submissions/analyze-audio',
+    '/api/v1/submissions/analyze-audio-aws',
     form,
     { headers: { 'Content-Type': 'multipart/form-data' } },
   );

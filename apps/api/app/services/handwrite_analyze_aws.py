@@ -33,6 +33,8 @@ def _run_sync(
     s3_url: str | None,
     user_profile: list[str] | None,
     request_id: str | None,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> tuple[OutputFinal, GatewaySession]:
     try:
         return _pipeline.run(
@@ -45,6 +47,8 @@ def _run_sync(
             s3_url=s3_url,
             user_profile=user_profile,
             request_id=request_id,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
         )
     except (EnvironmentError, RuntimeError):
         raise
@@ -61,6 +65,8 @@ async def analyze(
     s3_url: str | None = None,
     user_profile: list[str] | None = None,
     request_id: str | None = None,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> tuple[OutputFinal, GatewaySession]:
     """
     Async wrapper around the AWS handwrite pipeline.
@@ -75,7 +81,8 @@ async def analyze(
     try:
         return await asyncio.wait_for(
             asyncio.to_thread(
-                _run_sync, image_bytes, media_type, curso, modelo, s3_key, s3_url, user_profile, request_id
+                _run_sync, image_bytes, media_type, curso, modelo, s3_key, s3_url, user_profile, request_id,
+                consigna, evaluation_criteria,
             ),
             timeout=90.0,
         )

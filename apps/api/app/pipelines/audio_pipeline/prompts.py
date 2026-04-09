@@ -223,7 +223,6 @@ def build_call2_prompt(analysis: dict[str, Any], texto_original: str, nombre: st
     alertas_str = ", ".join(alertas) if alertas else "ninguna"
     errores = analysis.get("errores", [])
     errores_count = len(errores)
-    # Flag phonological errors so call2 explains them clearly to the student
     errores_fonologicos = [
         e for e in errores
         if e.get("lo_que_leyo") and (

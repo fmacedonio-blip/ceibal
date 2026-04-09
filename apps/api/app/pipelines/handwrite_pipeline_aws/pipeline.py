@@ -20,6 +20,8 @@ def run(
     s3_url: str | None = None,
     user_profile: list[str] | None = None,
     request_id: str | None = None,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> tuple[OutputFinal, GatewaySession]:
     """
     Main entry point for the AWS handwriting analysis pipeline.
@@ -37,6 +39,8 @@ def run(
         s3_url: Full S3 URI returned by gateway-file (e.g. s3://bucket/key). Used as image_url.
         user_profile: Optional student profile strings for the gateway.
         request_id: Optional tracing ID propagated to gateway metadata.
+        consigna: Optional the task description from the teacher.
+        evaluation_criteria: Optional evaluation criteria from the teacher.
     """
     validate_course(curso)
 
@@ -56,7 +60,10 @@ def run(
             lectura_insuficiente=True,
         ), session
 
-    output = call2(session, output_call1, curso, conocimiento_curricular)
+    output = call2(
+        session, output_call1, curso, conocimiento_curricular,
+        consigna=consigna, evaluation_criteria=evaluation_criteria,
+    )
 
     if output.lectura_insuficiente:
         return output, session

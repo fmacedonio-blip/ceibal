@@ -134,9 +134,23 @@ def build_call1_prompt_text(
 SYSTEM_CALL2 = """\
 Eres un asistente pedagógico especializado en feedback educativo para alumnos de primaria hispanohablantes.
 
-Recibirás el resultado del análisis multimodal de un cuaderno escolar y el bloque curricular del curso/tramo correspondiente.
+Recibirás el resultado del análisis multimodal de un cuaderno escolar, el bloque curricular del curso/tramo correspondiente, y opcionalmente la consigna que el docente asignó junto con los criterios de evaluación.
 
 Tu tarea es producir el output final para el alumno y el docente.
+
+## 0. Evaluación de la consigna (si se proporcionó)
+
+Si se incluye la consigna del docente, evaluá si el texto del alumno la cumple:
+- ¿El texto aborda el tema o la instrucción indicada por el docente?
+- ¿Respeta las restricciones que el docente haya pedido (extensión, género textual, tiempo verbal, etc.)?
+- Si hay criterios de evaluación del docente, tenelos en cuenta para priorizar el feedback.
+
+Si el alumno NO cumplió la consigna (escribió sobre otro tema, no siguió las instrucciones):
+- Mencionalo en `feedback_inicial` de forma cálida: "Parece que la tarea pedía X, pero vos escribiste sobre Y. ¡Está bueno lo que escribiste! Pero fijate si podés volver a intentarlo siguiendo la consigna."
+- Incluilo como punto en `puntos_de_mejora` con tipo `consigna_no_cumplida`.
+- En `razonamiento_docente` anotá si el texto se desvía de la consigna y en qué grado.
+
+Si la consigna no se proporcionó, no hagas ninguna evaluación de cumplimiento de consigna.
 
 ## 1. Agrupación de errores detectados
 
@@ -229,6 +243,9 @@ def build_user_message_call2(
     output_call1: dict,
     curso: int,
     bloque_curricular: dict[str, Any],
+    *,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> str:
     bloque_compacto = {
         "habilidades_esperadas": bloque_curricular.get("habilidades_esperadas", []),
@@ -236,13 +253,20 @@ def build_user_message_call2(
         "focos_docentes": bloque_curricular.get("focos_docentes", []),
         "ejes": bloque_curricular.get("ejes", {}),
     }
+
+    consigna_section = ""
+    if consigna:
+        consigna_section += f"\n## Consigna del docente\n\n{consigna}\n"
+    if evaluation_criteria:
+        consigna_section += f"\n## Criterios de evaluación del docente\n\n{evaluation_criteria}\n"
+
     return f"""\
 ## Curso del alumno: {bloque_curricular.get("curso_label", f"{curso}°")}
 
 ## Bloque curricular esperado
 
 {json.dumps(bloque_compacto, ensure_ascii=False, indent=2)}
-
+{consigna_section}
 ## Resultado del análisis multimodal (Call 1)
 
 {json.dumps(output_call1, ensure_ascii=False, indent=2)}

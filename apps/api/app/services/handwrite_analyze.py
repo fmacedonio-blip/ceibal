@@ -24,7 +24,14 @@ class HandwriteAnalyzeError(ValueError):
     pass
 
 
-def _run_sync_pipeline(imagen_bytes: bytes, media_type: str, curso: int, modelo: str) -> OutputFinal:
+def _run_sync_pipeline(
+    imagen_bytes: bytes,
+    media_type: str,
+    curso: int,
+    modelo: str,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
+) -> OutputFinal:
     if settings.handwrite_pipeline == "aws":
         # Future: import and call handwrite_pipeline_aws
         raise NotImplementedError("handwrite_pipeline_aws is not yet implemented")
@@ -36,17 +43,29 @@ def _run_sync_pipeline(imagen_bytes: bytes, media_type: str, curso: int, modelo:
         curso=curso,
         conocimiento_curricular=_get_conocimiento(),
         model=modelo,
+        consigna=consigna,
+        evaluation_criteria=evaluation_criteria,
     )
 
 
-async def analyze(imagen_bytes: bytes, media_type: str, curso: int, modelo: str = DEFAULT_MODEL) -> OutputFinal:
+async def analyze(
+    imagen_bytes: bytes,
+    media_type: str,
+    curso: int,
+    modelo: str = DEFAULT_MODEL,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
+) -> OutputFinal:
     """Async wrapper around the handwrite pipeline. Pipeline implementation
     is selected via settings.handwrite_pipeline ('openrouter' | 'aws').
     The signature of this function is stable — routers and services must not
     import pipeline modules directly."""
     try:
         result = await asyncio.wait_for(
-            asyncio.to_thread(_run_sync_pipeline, imagen_bytes, media_type, curso, modelo),
+            asyncio.to_thread(
+                _run_sync_pipeline, imagen_bytes, media_type, curso, modelo,
+                consigna, evaluation_criteria,
+            ),
             timeout=60.0,
         )
         return result

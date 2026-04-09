@@ -25,13 +25,20 @@ def generar(
     conocimiento_curricular: dict[str, Any],
     model: str,
     include_response: bool = False,
+    *,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> OutputFinal | tuple[OutputFinal, dict]:
     call1_dict = output_call1.model_dump()
     bloque_curricular = get_curriculum_block(curso, conocimiento_curricular)
 
     messages = [
         {"role": "system", "content": SYSTEM_CALL2},
-        {"role": "user", "content": build_user_message_call2(call1_dict, curso, bloque_curricular)},
+        {"role": "user", "content": build_user_message_call2(
+            call1_dict, curso, bloque_curricular,
+            consigna=consigna,
+            evaluation_criteria=evaluation_criteria,
+        )},
     ]
 
     try:
