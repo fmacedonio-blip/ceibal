@@ -31,6 +31,7 @@ from app.services.audio_analyze_aws import analyze as aws_audio_analyze
 from app.pipelines.handwrite_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_DEFAULT_MODEL
 from app.pipelines.audio_pipeline_aws.pipeline import DEFAULT_MODEL as AWS_AUDIO_DEFAULT_MODEL
 from app.pipelines.handwrite_pipeline_aws.s3_client import upload_file
+from app.pipelines.audio_pipeline.client import normalize_to_supported_format
 
 
 router = APIRouter(prefix="/api/v1", tags=["submissions"])
@@ -234,6 +235,7 @@ async def analyze_audio_submission_aws(
     texto_original: str = Form(...),
     nombre: str = Form(...),
     modelo: str = Form(AWS_AUDIO_DEFAULT_MODEL),
+    duracion_seg: Optional[float] = Form(None),
     activity_id: int = Form(None),
     db=Depends(get_async_db),
 ) -> AudioSubmissionAnalyzeResponse:
@@ -250,9 +252,12 @@ async def analyze_audio_submission_aws(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Empty audio file")
 
+    # Convert to MP3 before upload so the model receives a universally supported format
+    audio_bytes, audio_content_type = normalize_to_supported_format(audio_bytes, file.content_type)
+
     # Upload to S3 — hard fail, s3_key is required for the gateway-ai call
     try:
-        s3_key, _ = upload_file(audio_bytes, file.content_type, filename=file.filename or "audio.mp3")
+        s3_key, _ = upload_file(audio_bytes, audio_content_type, filename="audio.mp3")
     except EnvironmentError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (RuntimeError, ValueError) as exc:
@@ -261,12 +266,13 @@ async def analyze_audio_submission_aws(
     try:
         output, _session = await aws_audio_analyze(
             audio_bytes=audio_bytes,
-            media_type=file.content_type,
+            media_type=audio_content_type,
             texto_original=texto_original,
             nombre=nombre,
             curso=grade,
             modelo=modelo,
             s3_key=s3_key,
+            duracion_seg=duracion_seg,
         )
     except AudioAnalyzeAwsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

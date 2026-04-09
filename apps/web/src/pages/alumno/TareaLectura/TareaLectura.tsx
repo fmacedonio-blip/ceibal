@@ -190,8 +190,14 @@ export function TareaLectura() {
         state: { submissionId: result.submission_id },
       });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error al enviar. Intentá de nuevo.';
-      setError(msg);
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';
+      if (detail.toLowerCase().includes('ppm') || detail.toLowerCase().includes('rango')) {
+        setError('El audio no parece corresponder al texto. Intentá grabar de nuevo leyendo el párrafo.');
+      } else if (detail) {
+        setError(detail);
+      } else {
+        setError('No se pudo analizar la grabación. Intentá de nuevo.');
+      }
     } finally {
       setUploading(false);
     }

@@ -25,12 +25,12 @@ def run(
     result1 = call1.analizar(audio_bytes, media_type, texto_original, nombre, curso, model, duracion_seg)
 
     if not (5 <= result1.ppm <= 350):
-        raise RuntimeError(
+        raise ValueError(
             f"PPM fuera de rango plausible ({result1.ppm:.1f}). "
-            "Revisá que el audio y el texto original correspondan."
+            "Verificá que el audio corresponda al texto original."
         )
     if result1.palabras_texto_original > 0 and len(result1.errores) > result1.palabras_texto_original:
-        raise RuntimeError(
+        raise ValueError(
             f"El modelo detectó más errores ({len(result1.errores)}) "
             f"que palabras en el texto original ({result1.palabras_texto_original})."
         )

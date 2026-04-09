@@ -18,6 +18,7 @@ def _run_sync(
     curso: int,
     modelo: str,
     s3_key: str,
+    duracion_seg: float | None,
 ) -> tuple[OutputFinalAudio, GatewaySession]:
     try:
         return _pipeline.run(
@@ -28,6 +29,7 @@ def _run_sync(
             curso=curso,
             model=modelo,
             s3_key=s3_key,
+            duracion_seg=duracion_seg,
         )
     except (EnvironmentError, RuntimeError):
         raise
@@ -43,6 +45,7 @@ async def analyze(
     curso: int,
     modelo: str = DEFAULT_MODEL,
     s3_key: str | None = None,
+    duracion_seg: float | None = None,
 ) -> tuple[OutputFinalAudio, GatewaySession]:
     """
     Async wrapper around the AWS audio pipeline.
@@ -56,7 +59,7 @@ async def analyze(
     try:
         return await asyncio.wait_for(
             asyncio.to_thread(
-                _run_sync, audio_bytes, media_type, texto_original, nombre, curso, modelo, s3_key
+                _run_sync, audio_bytes, media_type, texto_original, nombre, curso, modelo, s3_key, duracion_seg
             ),
             timeout=120.0,
         )

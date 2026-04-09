@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_METADATA = {
     "agent_max_tokens": 8192,
     "agent_temperature": 0.2,
+    "response_format": {"type": "json_object"},
 }
 
 REQUIRED_KEYS_CALL1 = {"transcripcion", "errores_detectados", "puntos_de_mejora", "ambiguedades_lectura"}
