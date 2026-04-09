@@ -84,6 +84,7 @@ export type ActivityDetailStatus = "NO_ENTREGADO" | "COMPLETADA";
 export interface AiDiagnosis {
   text: string;
   tags: string[];
+  generated_at: string | null;
 }
 
 export interface ActivityHistory {
