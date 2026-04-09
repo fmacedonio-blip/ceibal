@@ -50,18 +50,6 @@ export function Courses() {
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <span style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Correcciones pendientes
-              </span>
-              <span style={{
-                fontWeight: 700, fontSize: 16,
-                color: course.pending_corrections > 5 ? "#dc2626" : course.pending_corrections > 0 ? "#f59e0b" : "#6b7280",
-              }}>
-                {course.pending_corrections}
-              </span>
-            </div>
-
             <button
               onClick={() => navigate(`/courses/${course.id}`)}
               style={{

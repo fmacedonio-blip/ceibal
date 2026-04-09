@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCourseStudents } from '../../api/courses';
+import { getCourse, getCourseStudents } from '../../api/courses';
 import { Avatar } from '../../components/Avatar/Avatar';
 import type { StudentFilter, StudentListItem } from '../../types/api';
 
@@ -31,7 +31,13 @@ export function Students() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ students: StudentListItem[]; total: number } | null>(null);
+  const [courseName, setCourseName] = useState('');
   const limit = 6;
+
+  useEffect(() => {
+    if (!courseId) return;
+    getCourse(courseId).then((c) => setCourseName(`${c.name} — ${c.shift}`));
+  }, [courseId]);
 
   useEffect(() => {
     if (!courseId) return;
@@ -46,7 +52,7 @@ export function Students() {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Lista de Alumnos</h1>
           <p style={{ fontSize: 14, color: '#6b7280' }}>
-            {courseId ? `4to A — Turno Matutino` : ''}
+            {courseName}
           </p>
         </div>
         <button style={{

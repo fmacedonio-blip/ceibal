@@ -1,32 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HiLockClosed } from 'react-icons/hi2';
 import { devLogin } from '../../api/auth';
+import { adminListStudents } from '../../api/admin';
 import { useAuthStore } from '../../store/auth';
 import type { UserRole } from '../../types/api';
+import type { AdminStudent } from '../../api/admin';
 import logo from '../../assets/logo.svg';
-
-const SEED_STUDENTS = [
-  { id: 1, name: 'María Suárez' },
-  { id: 2, name: 'Lucas Rodríguez' },
-  { id: 3, name: 'Valentina Pérez' },
-  { id: 4, name: 'Sofía García' },
-  { id: 5, name: 'Mateo Ríos' },
-];
 
 export function Login() {
   const [role, setRole] = useState<UserRole>('docente');
-  const [studentId, setStudentId] = useState<number>(1);
+  const [studentId, setStudentId] = useState<number | null>(null);
+  const [students, setStudents] = useState<AdminStudent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    adminListStudents().then((list) => {
+      setStudents(list);
+      if (list.length > 0) setStudentId(list[0].id);
+    });
+  }, []);
+
   async function handleLogin() {
     setLoading(true);
     setError(null);
     try {
-      const res = await devLogin(role, role === 'alumno' ? studentId : undefined);
+      const res = await devLogin(role, role === 'alumno' && studentId ? studentId : undefined);
       login(res.access_token, res.user);
       navigate(role === 'alumno' ? '/alumno/inicio' : '/dashboard', { replace: true });
     } catch {
@@ -82,7 +84,7 @@ export function Login() {
 
         {role === 'alumno' && (
           <select
-            value={studentId}
+            value={studentId ?? ''}
             onChange={(e) => setStudentId(Number(e.target.value))}
             style={{
               padding: '4px 8px',
@@ -94,9 +96,9 @@ export function Login() {
               cursor: 'pointer',
             }}
           >
-            {SEED_STUDENTS.map((s) => (
+            {students.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.name}
+                {s.name} — {s.course_name}
               </option>
             ))}
           </select>

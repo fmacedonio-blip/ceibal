@@ -1,9 +1,33 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { HiArrowLeft, HiExclamationTriangle } from 'react-icons/hi2';
-import { getTaskStudents } from '../../api/courses';
+import { getCourse, getTaskStudents } from '../../api/courses';
 import type { TaskDetailResponse, TaskStudentRow } from '../../api/courses';
 import { Avatar } from '../../components/Avatar/Avatar';
+
+// Minimum PPM and precision expected per grade
+const PPM_MIN: Record<number, number> = { 1: 30, 2: 50, 3: 70, 4: 90, 5: 100, 6: 110 };
+const PRECISION_MIN: Record<number, number> = { 1: 70, 2: 70, 3: 70, 4: 70, 5: 70, 6: 70 };
+// Maximum total errors accepted per grade
+const ERRORS_MAX: Record<number, number> = { 1: 8, 2: 6, 3: 5, 4: 5, 5: 4, 6: 3 };
+
+function parseGrade(courseName: string): number {
+  const match = courseName.match(/^(\d+)/);
+  return match ? parseInt(match[1], 10) : 4;
+}
+
+function hasProblems(row: TaskStudentRow, isLectura: boolean, grade: number): boolean {
+  if (row.status !== 'COMPLETADA' || !row.metrics) return false;
+  if (isLectura) {
+    const ppm = row.metrics.ppm;
+    const precision = row.metrics.precision;
+    return (ppm != null && ppm < (PPM_MIN[grade] ?? 90)) ||
+           (precision != null && precision < (PRECISION_MIN[grade] ?? 90));
+  } else {
+    const errors = row.metrics.total_errors;
+    return errors != null && errors > (ERRORS_MAX[grade] ?? 5);
+  }
+}
 
 const TYPE_BADGE = {
   lectura:   { bg: '#f0fdfa', color: '#0d9488', label: 'LECTURA' },
@@ -24,24 +48,28 @@ function StatusBadge({ status }: { status: TaskStudentRow['status'] }) {
   );
 }
 
-function ReviewCell({ requiresReview }: { requiresReview: boolean | null | undefined }) {
-  if (!requiresReview) return <span style={{ color: '#9ca3af' }}>—</span>;
+function ProblemsCell({ problems }: { problems: boolean }) {
+  if (!problems) return <span style={{ color: '#9ca3af' }}>—</span>;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       padding: '3px 10px', borderRadius: 20,
       fontSize: 12, fontWeight: 600,
-      background: '#fff7ed', color: '#c2410c',
+      background: '#fef2f2', color: '#dc2626',
     }}>
       <HiExclamationTriangle size={13} />
-      Revisar
+      Dificultades
     </span>
   );
 }
 
-function MetricCell({ value, suffix = '' }: { value: number | null | undefined; suffix?: string }) {
+function MetricCell({ value, suffix = '', alert = false }: { value: number | null | undefined; suffix?: string; alert?: boolean }) {
   if (value == null) return <span style={{ color: '#9ca3af' }}>—</span>;
-  return <span style={{ fontSize: 13, color: '#111827', fontWeight: 500 }}>{value}{suffix}</span>;
+  return (
+    <span style={{ fontSize: 13, fontWeight: 600, color: alert ? '#dc2626' : '#111827' }}>
+      {value}{suffix}
+    </span>
+  );
 }
 
 export function TaskDetail() {
@@ -49,9 +77,11 @@ export function TaskDetail() {
   const navigate = useNavigate();
   const [data, setData] = useState<TaskDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [grade, setGrade] = useState(4);
 
   useEffect(() => {
     if (!courseId || !taskId) return;
+    getCourse(courseId).then((c) => setGrade(parseGrade(c.name)));
     getTaskStudents(courseId, taskId)
       .then(setData)
       .finally(() => setLoading(false));
@@ -61,6 +91,18 @@ export function TaskDetail() {
   const students = data?.students ?? [];
   const isLectura = task?.type === 'lectura';
   const badge = task ? TYPE_BADGE[task.type] : null;
+
+  const completed = students.filter(s => s.status === 'COMPLETADA' && s.metrics);
+  const completionPct = students.length > 0 ? Math.round((completed.length / students.length) * 100) : 0;
+  const avgPpm = completed.length > 0
+    ? Math.round(completed.reduce((sum, s) => sum + (s.metrics?.ppm ?? 0), 0) / completed.length)
+    : null;
+  const avgPrecision = completed.length > 0
+    ? Math.round(completed.reduce((sum, s) => sum + (s.metrics?.precision ?? 0), 0) / completed.length)
+    : null;
+  const avgErrors = completed.length > 0
+    ? (completed.reduce((sum, s) => sum + (s.metrics?.total_errors ?? 0), 0) / completed.length).toFixed(1)
+    : null;
 
   return (
     <div>
@@ -126,6 +168,59 @@ export function TaskDetail() {
         )}
       </div>
 
+      {/* Estadísticas globales */}
+      {!loading && students.length > 0 && (
+        <div style={{
+          background: '#fff', borderRadius: 10, padding: '18px 24px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 16,
+          display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap',
+        }}>
+          {/* Barra de completadas */}
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Completadas</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>
+                {completed.length} de {students.length}
+              </span>
+            </div>
+            <div style={{ height: 6, background: '#e5e7eb', borderRadius: 3 }}>
+              <div style={{
+                height: 6, borderRadius: 3, background: '#00b89c',
+                width: `${completionPct}%`, transition: 'width 0.3s',
+              }} />
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div style={{ width: 1, height: 36, background: '#e5e7eb', flexShrink: 0 }} />
+
+          {/* Métricas */}
+          {isLectura ? (
+            <>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
+                  {avgPpm ?? '—'}
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, marginTop: 2 }}>PPM promedio</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
+                  {avgPrecision != null ? `${avgPrecision}%` : '—'}
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, marginTop: 2 }}>Precisión promedio</div>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
+                {avgErrors ?? '—'}
+              </div>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500, marginTop: 2 }}>Errores promedio</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabla */}
       {!loading && (
         <div style={{ background: '#fff', borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
@@ -145,7 +240,7 @@ export function TaskDetail() {
                     <th style={thCenterStyle}>ORTOGRAFÍA</th>
                   </>
                 )}
-                <th style={thCenterStyle}>REVISIÓN</th>
+                <th style={thCenterStyle}>DIFICULTADES</th>
               </tr>
             </thead>
             <tbody>
@@ -170,17 +265,22 @@ export function TaskDetail() {
                   </td>
                   {isLectura ? (
                     <>
-                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.ppm} /></td>
-                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.precision} suffix="%" /></td>
+                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.ppm} alert={(row.metrics?.ppm ?? null) !== null && row.metrics!.ppm! < (PPM_MIN[grade] ?? 90)} /></td>
+                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.precision} suffix="%" alert={(row.metrics?.precision ?? null) !== null && row.metrics!.precision! < (PRECISION_MIN[grade] ?? 90)} /></td>
                     </>
                   ) : (
                     <>
-                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.total_errors} /></td>
-                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.spelling_errors} /></td>
+                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.total_errors} alert={(row.metrics?.total_errors ?? null) !== null && row.metrics!.total_errors! > (ERRORS_MAX[grade] ?? 5)} /></td>
+                      <td style={tdCenterStyle}><MetricCell value={row.metrics?.spelling_errors} alert={
+                        row.metrics?.spelling_errors != null &&
+                        row.metrics?.total_errors != null &&
+                        row.metrics.total_errors > 0 &&
+                        row.metrics.spelling_errors / row.metrics.total_errors > 0.5
+                      } /></td>
                     </>
                   )}
                   <td style={tdCenterStyle}>
-                    <ReviewCell requiresReview={row.metrics?.requires_review} />
+                    <ProblemsCell problems={hasProblems(row, isLectura, grade)} />
                   </td>
                 </tr>
                 );

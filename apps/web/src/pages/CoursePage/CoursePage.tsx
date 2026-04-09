@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { getCourse } from '../../api/courses';
 import { StudentsTab } from './StudentsTab';
 import { TasksTab } from './TasksTab';
 import { NewTaskModal } from './NewTaskModal';
@@ -11,9 +12,6 @@ const TABS: { label: string; value: ActiveTab }[] = [
   { label: 'Tareas', value: 'tareas' },
 ];
 
-// TODO: fetch from API using courseId
-const COURSE_NAME = '4to A — Turno Matutino';
-
 export function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchParams] = useSearchParams();
@@ -22,6 +20,12 @@ export function CoursePage() {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [courseName, setCourseName] = useState('');
+
+  useEffect(() => {
+    if (!courseId) return;
+    getCourse(courseId).then((c) => setCourseName(`${c.name} — ${c.shift}`));
+  }, [courseId]);
 
   if (!courseId) return null;
 
@@ -30,7 +34,7 @@ export function CoursePage() {
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', marginBottom: 4 }}>Curso</h1>
-        <p style={{ fontSize: 14, color: '#6b7280' }}>{COURSE_NAME}</p>
+        <p style={{ fontSize: 14, color: '#6b7280' }}>{courseName}</p>
       </div>
 
       {/* Tabs */}
@@ -77,7 +81,7 @@ export function CoursePage() {
       <NewTaskModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        courseName={COURSE_NAME}
+        courseName={courseName}
         courseId={Number(courseId)}
         onCreated={() => setRefreshKey((k) => k + 1)}
       />

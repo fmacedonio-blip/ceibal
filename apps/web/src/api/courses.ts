@@ -6,6 +6,13 @@ export async function getCourses(): Promise<Course[]> {
   return res.data;
 }
 
+export async function getCourse(courseId: string): Promise<Course> {
+  const courses = await getCourses();
+  const course = courses.find((c) => String(c.id) === courseId);
+  if (!course) throw new Error(`Course ${courseId} not found`);
+  return course;
+}
+
 export async function getCourseStudents(
   courseId: string,
   params: { filter?: StudentFilter; search?: string; page?: number; limit?: number }

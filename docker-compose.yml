@@ -19,7 +19,7 @@ services:
     build:
       context: ./apps/api
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ceibal}:${POSTGRES_PASSWORD:-ceibal_dev_pass}@postgres:5432/ceibal_dev
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-ceibal}:${POSTGRES_PASSWORD:-ceibal_dev_pass}@postgres:5432/ceibal_dev}
       JWT_SECRET: ${JWT_SECRET}
       ENV: ${ENV:-development}
       CORS_ORIGINS: "http://localhost,http://localhost:80"
