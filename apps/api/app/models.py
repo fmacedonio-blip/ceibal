@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     JSON,
+    UUID,
     Column,
     DateTime,
     Float,
@@ -67,7 +68,12 @@ class Activity(Base):
     name = Column(String, nullable=False)
     date = Column(String, nullable=False)
     score = Column(Float, nullable=True)
-    status = Column(String, nullable=False)  # COMPLETADA | PENDIENTE_DE_REVISION | REVISADA | NO_ENTREGADO | CORREGIDA
+    status = Column(String, nullable=False)  # COMPLETADA | NO_ENTREGADO
+    type = Column(String, nullable=True)     # lectura | escritura
+    description = Column(Text, nullable=True)
+    reading_text = Column(Text, nullable=True)
+    subject = Column(String, nullable=True)
+    submission_id = Column(UUID, nullable=True)
 
     student = relationship("Student", back_populates="activities")
 

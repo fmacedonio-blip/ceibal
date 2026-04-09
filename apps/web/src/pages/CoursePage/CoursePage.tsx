@@ -18,6 +18,7 @@ export function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const [activeTab, setActiveTab] = useState<ActiveTab>('alumnos');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!courseId) return null;
 
@@ -65,6 +66,7 @@ export function CoursePage() {
         <TasksTab
           courseId={courseId}
           onAdd={() => setIsModalOpen(true)}
+          refreshKey={refreshKey}
         />
       )}
 
@@ -73,6 +75,8 @@ export function CoursePage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         courseName={COURSE_NAME}
+        courseId={Number(courseId)}
+        onCreated={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );

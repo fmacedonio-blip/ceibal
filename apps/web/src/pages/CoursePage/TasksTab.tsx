@@ -1,25 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getCourseTasksList } from '../../api/courses';
 import { TaskRow } from './TaskRow';
 
 type TaskType = 'lectura' | 'escritura';
 type TaskFilter = 'todas' | TaskType;
 
-interface MockTask {
-  id: string;
+interface CourseTask {
+  id: number;
+  name: string;
   type: TaskType;
-  title: string;
   date: string;
   progress: number;
 }
-
-const MOCK_TASKS: MockTask[] = [
-  { id: '1', type: 'lectura',   title: 'El zorro y la luna',           date: '12 de Octubre',    progress: 85  },
-  { id: '2', type: 'escritura', title: 'Mi aventura espacial',          date: '15 de Octubre',    progress: 42  },
-  { id: '3', type: 'lectura',   title: 'Leyendas del Uruguay',          date: '20 de Octubre',    progress: 100 },
-  { id: '4', type: 'lectura',   title: 'Cuentos de la Selva',           date: '25 de Octubre',    progress: 45  },
-  { id: '5', type: 'escritura', title: 'Poesía Cotidiana',              date: '28 de Octubre',    progress: 20  },
-  { id: '6', type: 'lectura',   title: 'Viaje al Centro de la Tierra',  date: '1 de Noviembre',   progress: 92  },
-];
 
 const FILTERS: { label: string; value: TaskFilter }[] = [
   { label: 'Todas', value: 'todas' },
@@ -30,12 +22,22 @@ const FILTERS: { label: string; value: TaskFilter }[] = [
 interface Props {
   courseId: string;
   onAdd: () => void;
+  refreshKey?: number;
 }
 
-export function TasksTab({ courseId, onAdd }: Props) {
+export function TasksTab({ courseId, onAdd, refreshKey }: Props) {
   const [filter, setFilter] = useState<TaskFilter>('todas');
+  const [tasks, setTasks] = useState<CourseTask[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = filter === 'todas' ? MOCK_TASKS : MOCK_TASKS.filter((t) => t.type === filter);
+  useEffect(() => {
+    setLoading(true);
+    getCourseTasksList(courseId)
+      .then(setTasks)
+      .finally(() => setLoading(false));
+  }, [courseId, refreshKey]);
+
+  const filtered = filter === 'todas' ? tasks : tasks.filter((t) => t.type === filter);
 
   return (
     <div>
@@ -72,24 +74,30 @@ export function TasksTab({ courseId, onAdd }: Props) {
       </div>
 
       {/* Lista */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {filtered.map((task) => (
-          <TaskRow
-            key={task.id}
-            id={task.id}
-            type={task.type}
-            title={task.title}
-            date={task.date}
-            progress={task.progress}
-            courseId={courseId}
-          />
-        ))}
-        {filtered.length === 0 && (
-          <p style={{ fontSize: 14, color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>
-            No hay tareas de este tipo.
-          </p>
-        )}
-      </div>
+      {loading ? (
+        <p style={{ fontSize: 14, color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>
+          Cargando tareas...
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map((task) => (
+            <TaskRow
+              key={task.id}
+              id={String(task.id)}
+              type={task.type}
+              title={task.name}
+              date={task.date}
+              progress={task.progress}
+              courseId={courseId}
+            />
+          ))}
+          {filtered.length === 0 && (
+            <p style={{ fontSize: 14, color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>
+              {tasks.length === 0 ? 'No hay tareas creadas aún.' : 'No hay tareas de este tipo.'}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HiXMark, HiArrowLeft, HiBookOpen, HiPencil } from 'react-icons/hi2';
+import { createTask } from '../../api/courses';
 
 type TaskType = 'lectura' | 'escritura';
 
@@ -7,6 +8,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   courseName: string;
+  courseId: number;
+  onCreated?: () => void;
 }
 
 const TYPE_CARDS: { type: TaskType; title: string; description: string }[] = [
@@ -52,24 +55,27 @@ function FieldLabel({ label, optional }: { label: string; optional?: boolean }) 
   );
 }
 
-export function NewTaskModal({ isOpen, onClose, courseName }: Props) {
+export function NewTaskModal({ isOpen, onClose, courseName, courseId, onCreated }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedType, setSelectedType] = useState<TaskType | null>(null);
   const [title, setTitle] = useState('');
   const [mainText, setMainText] = useState('');
   const [criteria, setCriteria] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   function handleClose() {
     onClose();
-    // Reset after closing animation (instant for now)
     setTimeout(() => {
       setStep(1);
       setSelectedType(null);
       setTitle('');
       setMainText('');
       setCriteria('');
+      setError(null);
+      setLoading(false);
     }, 150);
   }
 
@@ -81,8 +87,24 @@ export function NewTaskModal({ isOpen, onClose, courseName }: Props) {
     setStep(1);
   }
 
-  function handleCreate() {
-    handleClose();
+  async function handleCreate() {
+    if (!selectedType) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await createTask(courseId, {
+        name: title,
+        type: selectedType,
+        description: selectedType === 'escritura' ? mainText : undefined,
+        reading_text: selectedType === 'lectura' ? mainText : undefined,
+      });
+      onCreated?.();
+      handleClose();
+    } catch {
+      setError('No se pudo crear la tarea. Intentá de nuevo.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const maxChars = selectedType === 'lectura' ? 5000 : 2000;
@@ -224,9 +246,14 @@ export function NewTaskModal({ isOpen, onClose, courseName }: Props) {
         </div>
 
         {/* Footer */}
+        <div style={{ borderTop: '1px solid #f3f4f6' }}>
+          {error && (
+            <p style={{ margin: 0, padding: '10px 28px 0', fontSize: 13, color: '#dc2626' }}>
+              {error}
+            </p>
+          )}
         <div style={{
           padding: '16px 28px',
-          borderTop: '1px solid #f3f4f6',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           {/* Izquierda */}
@@ -262,20 +289,21 @@ export function NewTaskModal({ isOpen, onClose, courseName }: Props) {
           ) : (
             <button
               onClick={handleCreate}
-              disabled={!canCreate}
+              disabled={!canCreate || loading}
               style={{
-                background: canCreate ? '#00b89c' : '#d1d5db',
+                background: canCreate && !loading ? '#00b89c' : '#d1d5db',
                 color: '#fff', border: 'none',
                 borderRadius: 8, padding: '10px 20px',
                 fontSize: 14, fontWeight: 600,
-                cursor: canCreate ? 'pointer' : 'not-allowed',
+                cursor: canCreate && !loading ? 'pointer' : 'not-allowed',
                 fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', gap: 6,
               }}
             >
-              Crear tarea ✓
+              {loading ? 'Creando...' : 'Crear tarea ✓'}
             </button>
           )}
+        </div>
         </div>
       </div>
     </>

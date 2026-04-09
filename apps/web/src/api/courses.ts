@@ -16,3 +16,26 @@ export async function getCourseStudents(
   );
   return res.data;
 }
+
+export async function getCourseTasksList(courseId: string): Promise<{
+  id: number; name: string; type: 'lectura' | 'escritura'; date: string; progress: number;
+}[]> {
+  const res = await apiClient.get(`/api/v1/courses/${courseId}/tasks`);
+  return res.data;
+}
+
+export async function createTask(
+  courseId: number,
+  payload: {
+    name: string;
+    type: 'lectura' | 'escritura';
+    description?: string;
+    reading_text?: string;
+  }
+): Promise<{ tasks_created: number }> {
+  const res = await apiClient.post<{ tasks_created: number }>(
+    `/api/v1/courses/${courseId}/tasks`,
+    payload
+  );
+  return res.data;
+}
