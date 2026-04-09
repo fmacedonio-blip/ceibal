@@ -17,6 +17,8 @@ def run(
     *,
     image_media_type: str | None = None,
     texto_compatibilidad: str | None = None,
+    consigna: str | None = None,
+    evaluation_criteria: str | None = None,
 ) -> OutputFinal:
     validate_course(curso)
 
@@ -48,6 +50,8 @@ def run(
         curso=curso,
         conocimiento_curricular=conocimiento_curricular,
         model=model,
+        consigna=consigna,
+        evaluation_criteria=evaluation_criteria,
     )
 
     return output_final

@@ -75,8 +75,8 @@ class ErrorDetectado(BaseModel):
     text: str
     error_type: str
     correccion_alumno: str = ""
-    explicacion_pedagogica: str
-    explicacion_docente: str
+    explicacion_pedagogica: str = ""
+    explicacion_docente: str = ""
     confianza_lectura: float | None = Field(default=None, ge=0.0, le=1.0)
     es_ambigua: bool = False
     requiere_revision_docente: bool = False
