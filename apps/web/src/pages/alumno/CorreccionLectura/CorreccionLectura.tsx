@@ -7,7 +7,13 @@ import {
 import { getCorrection } from '../../../api/alumno';
 import type { AudioCorrectionAlumno, AudioCorrectionErrorAlumno } from '../../../types/alumno';
 
-
+const ALERTA_FLUIDEZ_INFO: Record<string, { title: string; tip: string }> = {
+  no_respeta_pausas:           { title: 'Pausas y puntuación',        tip: 'Cuando ves un punto o una coma, hacé una pausa cortita antes de seguir.' },
+  dificultad_polisilabas:      { title: 'Palabras largas',            tip: '¡Practicá dividiéndolas en sílabas antes de leerlas completas!' },
+  lectura_palabra_por_palabra: { title: 'Lectura palabra por palabra', tip: 'Intentá juntar las palabras en grupos para que suene más natural.' },
+  silabeo:                     { title: 'Lectura en sílabas',         tip: 'En vez de separar las sílabas, tratá de decir la palabra entera de corrido.' },
+  velocidad_alta_con_errores:  { title: 'Velocidad alta',             tip: 'Leíste rápido pero con algunos errores. Bajá un poquito la velocidad.' },
+};
 
 function ErrorCard({ err }: { err: AudioCorrectionErrorAlumno }) {
   const isPositive = err.tipo === 'autocorreccion';
@@ -59,6 +65,7 @@ export function CorreccionLectura() {
 
   const realErrors = alumno.errores.filter(e => e.tipo !== 'autocorreccion');
   const autoCorrections = alumno.errores.filter(e => e.tipo === 'autocorreccion');
+  const alertas = alumno.alertas_fluidez ?? [];
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -194,6 +201,28 @@ export function CorreccionLectura() {
         )
       )}
 
+
+      {/* Para seguir mejorando — alertas de fluidez */}
+      {(() => {
+        const alertasConocidas = alertas.filter(a => ALERTA_FLUIDEZ_INFO[a]);
+        if (alertasConocidas.length === 0) return null;
+        return (
+          <Card bg="#fef9c3" border="#fde68a">
+            <Title icon="🔊" color="#92400e">Para seguir mejorando 💪</Title>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {alertasConocidas.map((alerta, i) => {
+                const info = ALERTA_FLUIDEZ_INFO[alerta];
+                return (
+                  <div key={i} style={{ display: 'flex', gap: 8, fontSize: 14, color: '#78350f', lineHeight: 1.5 }}>
+                    <span style={{ flexShrink: 0 }}>•</span>
+                    <span><strong>{info.title}:</strong> {info.tip}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* Errores en pronunciación */}
       {realErrors.length > 0 && (
