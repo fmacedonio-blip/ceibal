@@ -104,10 +104,11 @@ export function ActivityDetail() {
         {/* Left column */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Original del Alumno */}
+          {/* Original del Alumno — solo escritura */}
+          {!isAudio && (
           <div style={{ background: '#fff', borderRadius: 12, padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Original del Alumno</h3>
-            {imageUrl && !isAudio ? (
+            {imageUrl ? (
               <img
                 src={imageUrl}
                 alt="Trabajo del alumno"
@@ -119,12 +120,14 @@ export function ActivityDetail() {
                 background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb',
                 padding: '48px 24px', textAlign: 'center', color: '#9ca3af', fontSize: 13,
               }}>
-                {isAudio ? 'Reproducción de audio no disponible en esta vista.' : 'Sin imagen adjunta'}
+                Sin imagen adjunta
               </div>
             )}
           </div>
+          )}
 
-          {/* Transcripción Inteligente */}
+          {/* Transcripción Inteligente — solo escritura */}
+          {!isAudio && (
           <div style={{ background: '#fff', borderRadius: 12, padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Transcripción Inteligente</h3>
@@ -143,24 +146,13 @@ export function ActivityDetail() {
                   </p>
                 </div>
               </>
-            ) : audioCorr ? (
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                {[
-                  { label: 'PPM', value: audioCorr.docente.ppm.toFixed(1) },
-                  { label: 'Precisión', value: `${audioCorr.docente.precision.toFixed(0)}%` },
-                  { label: 'Nivel', value: audioCorr.docente.nivel_orientativo },
-                ].map(({ label, value }) => (
-                  <div key={label} style={{ background: '#f9fafb', borderRadius: 8, padding: '10px 16px', fontSize: 13, color: '#374151' }}>
-                    <span style={{ fontWeight: 700 }}>{value}</span> {label}
-                  </div>
-                ))}
-              </div>
             ) : (
               <p style={{ fontSize: 14, color: '#9ca3af' }}>
                 {correctionError ? 'No se pudo cargar la transcripción.' : 'Sin transcripción disponible para esta actividad.'}
               </p>
             )}
           </div>
+          )}
 
           {/* Feedback Entregado al Alumno */}
           <div style={{ background: '#fff', borderRadius: 12, padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>

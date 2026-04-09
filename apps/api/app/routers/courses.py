@@ -237,6 +237,7 @@ def get_task_detail(
 
         rows.append({
             "student_id": student.id,
+            "activity_id": activity.id if activity else None,
             "name": student.name,
             "status": activity.status if activity else "NO_ENTREGADO",
             "metrics": metrics,

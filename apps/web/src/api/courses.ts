@@ -35,6 +35,7 @@ export interface TaskMetrics {
 
 export interface TaskStudentRow {
   student_id: number;
+  activity_id: number | null;
   name: string;
   status: 'COMPLETADA' | 'NO_ENTREGADO';
   metrics: TaskMetrics | null;

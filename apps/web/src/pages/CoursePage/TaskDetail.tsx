@@ -149,8 +149,16 @@ export function TaskDetail() {
               </tr>
             </thead>
             <tbody>
-              {students.map((row) => (
-                <tr key={row.student_id} style={{ borderTop: '1px solid #f3f4f6' }}>
+              {students.map((row) => {
+                const isComplete = row.status === 'COMPLETADA' && row.activity_id != null;
+                return (
+                <tr
+                  key={row.student_id}
+                  onClick={isComplete ? () => navigate(`/students/${row.student_id}/activities/${row.activity_id}`) : undefined}
+                  style={{ borderTop: '1px solid #f3f4f6', cursor: isComplete ? 'pointer' : 'default' }}
+                  onMouseEnter={isComplete ? (e) => (e.currentTarget.style.background = '#f9fafb') : undefined}
+                  onMouseLeave={isComplete ? (e) => (e.currentTarget.style.background = '') : undefined}
+                >
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <Avatar name={row.name} size={32} fontSize={11} />
@@ -175,7 +183,8 @@ export function TaskDetail() {
                     <ReviewCell requiresReview={row.metrics?.requires_review} />
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {students.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
