@@ -187,7 +187,7 @@ export function TareaLectura() {
         textoOriginal, user.name, Number(taskId), elapsedRef.current,
       );
       navigate(`/alumno/tarea/${taskId}/correccion-lectura`, {
-        state: { submissionId: result.submission_id },
+        state: { submissionId: result.submission_id, consignaNoCumplida: result.consigna_no_cumplida },
       });
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '';

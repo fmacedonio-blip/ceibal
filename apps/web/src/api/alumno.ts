@@ -23,7 +23,7 @@ export async function submitWriting(
   classUuid: string,
   grade: number,
   activityId: number,
-): Promise<{ submission_id: string }> {
+): Promise<{ submission_id: string; consigna_no_cumplida: boolean; feedback_inicial: string }> {
   const form = new FormData();
   form.append('file', file);
   form.append('student_id', studentUuid);
@@ -31,7 +31,7 @@ export async function submitWriting(
   form.append('grade', String(grade));
   form.append('activity_id', String(activityId));
 
-  const res = await apiClient.post<{ submission_id: string }>(
+  const res = await apiClient.post<{ submission_id: string; consigna_no_cumplida: boolean; feedback_inicial: string }>(
     '/api/v1/submissions/analyze-aws',
     form,
     { headers: { 'Content-Type': 'multipart/form-data' } },
@@ -48,7 +48,7 @@ export async function submitAudio(
   nombre: string,
   activityId: number,
   duracionSeg?: number,
-): Promise<{ submission_id: string }> {
+): Promise<{ submission_id: string; consigna_no_cumplida: boolean }> {
   const form = new FormData();
   form.append('file', audioBlob, 'recording.webm');
   form.append('student_id', studentUuid);
@@ -61,7 +61,7 @@ export async function submitAudio(
     form.append('duracion_seg', String(duracionSeg));
   }
 
-  const res = await apiClient.post<{ submission_id: string }>(
+  const res = await apiClient.post<{ submission_id: string; consigna_no_cumplida: boolean }>(
     '/api/v1/submissions/analyze-audio-aws',
     form,
     { headers: { 'Content-Type': 'multipart/form-data' } },

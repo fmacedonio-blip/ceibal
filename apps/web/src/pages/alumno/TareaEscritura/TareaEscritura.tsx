@@ -45,7 +45,7 @@ export function TareaEscritura() {
 
       const result = await submitWriting(file, user.student_uuid, classUuid, grade, Number(taskId));
       navigate(`/alumno/tarea/${taskId}/correccion-escritura`, {
-        state: { submissionId: result.submission_id },
+        state: { submissionId: result.submission_id, consignaNoCumplida: result.consigna_no_cumplida },
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al enviar. Intentá de nuevo.';

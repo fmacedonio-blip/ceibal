@@ -51,8 +51,8 @@ def _compute_audio_metrics(output: OutputFinalAudio) -> dict[str, Any]:
     }
 
 
-def _link_activity(activity_id: int, submission_id: uuid.UUID) -> None:
-    """Best-effort sync update: link Activity to Submission and increment tasks_completed."""
+def _link_activity(activity_id: int, submission_id: uuid.UUID, consigna_no_cumplida: bool = False) -> None:
+    """Best-effort sync update: link Activity to Submission and (if consigna met) mark COMPLETADA."""
     from app.database import SessionLocal
     from app.models.existing import Activity, Student
 
@@ -63,12 +63,13 @@ def _link_activity(activity_id: int, submission_id: uuid.UUID) -> None:
             if activity is None:
                 logger.warning("activity_id=%s not found — skipping activity link", activity_id)
                 return
-            activity.status = "COMPLETADA"
             activity.submission_id = submission_id
-            student = db_sync.query(Student).filter(Student.id == activity.student_id).first()
-            if student is not None:
-                student.tasks_completed = (student.tasks_completed or 0) + 1
-                student.last_activity = activity.name
+            if not consigna_no_cumplida:
+                activity.status = "COMPLETADA"
+                student = db_sync.query(Student).filter(Student.id == activity.student_id).first()
+                if student is not None:
+                    student.tasks_completed = (student.tasks_completed or 0) + 1
+                    student.last_activity = activity.name
             db_sync.commit()
         except Exception:
             db_sync.rollback()
@@ -92,6 +93,7 @@ async def persist_result(
     activity_id: int | None = None,
     image_bytes: bytes | None = None,
     image_content_type: str | None = None,
+    consigna_no_cumplida: bool = False,
 ) -> Submission:
     if submission_type == "audio":
         metrics = _compute_audio_metrics(output)  # type: ignore[arg-type]
@@ -151,7 +153,7 @@ async def persist_result(
         raise
 
     if activity_id is not None:
-        _link_activity(activity_id, submission.id)
+        _link_activity(activity_id, submission.id, consigna_no_cumplida=consigna_no_cumplida)
 
     return submission
 

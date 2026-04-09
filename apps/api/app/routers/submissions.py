@@ -121,6 +121,8 @@ async def analyze_submission(
     except HandwriteAnalyzeError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    consigna_no_cumplida = any(p.tipo == "consigna_no_cumplida" for p in output.puntos_de_mejora)
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -131,6 +133,7 @@ async def analyze_submission(
         activity_id=activity_id,
         image_bytes=image_bytes,
         image_content_type=file.content_type,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -139,6 +142,7 @@ async def analyze_submission(
     return SubmissionAnalyzeResponse(
         submission_id=submission.id,
         status=submission.status,
+        consigna_no_cumplida=consigna_no_cumplida,
         **output.model_dump(),
     )
 
@@ -193,6 +197,8 @@ async def analyze_submission_aws(
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    consigna_no_cumplida = any(p.tipo == "consigna_no_cumplida" for p in output.puntos_de_mejora)
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -202,6 +208,7 @@ async def analyze_submission_aws(
         output=output,
         s3_key=s3_key,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     transcripcion_html = _build_transcripcion_html(output.transcripcion, output.errores_detectados_agrupados)
@@ -210,6 +217,7 @@ async def analyze_submission_aws(
     return SubmissionAnalyzeResponse(
         submission_id=submission.id,
         status=submission.status,
+        consigna_no_cumplida=consigna_no_cumplida,
         **output.model_dump(),
     )
 
@@ -248,6 +256,8 @@ async def analyze_audio_submission(
     ai_result_dict["texto_original"] = texto_original
     ai_result_dict["nombre"] = nombre
 
+    consigna_no_cumplida = output.consigna_no_cumplida
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -258,6 +268,7 @@ async def analyze_audio_submission(
         submission_type="audio",
         ai_result_override=ai_result_dict,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -269,6 +280,7 @@ async def analyze_audio_submission(
         precision=output.precision,
         total_errors=submission.total_errors or 0,
         requires_review=submission.requires_review,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
 
@@ -331,6 +343,8 @@ async def analyze_audio_submission_aws(
     ai_result_dict["texto_original"] = texto_original
     ai_result_dict["nombre"] = nombre
 
+    consigna_no_cumplida = output.consigna_no_cumplida
+
     submission = await submission_service.persist_result(
         db=db,
         student_id=student_id,
@@ -342,6 +356,7 @@ async def analyze_audio_submission_aws(
         ai_result_override=ai_result_dict,
         s3_key=s3_key,
         activity_id=activity_id,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
     return AudioSubmissionAnalyzeResponse(
@@ -353,6 +368,7 @@ async def analyze_audio_submission_aws(
         precision=output.precision,
         total_errors=submission.total_errors or 0,
         requires_review=submission.requires_review,
+        consigna_no_cumplida=consigna_no_cumplida,
     )
 
 

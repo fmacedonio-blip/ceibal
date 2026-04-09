@@ -59,6 +59,10 @@ Registrá TODAS las que aplican — si hay evidencia, incluila:
 
 Si la calidad del audio es muy mala para transcribir con confianza, marcá `calidad_audio_baja: true` y explicá en `notas_calidad`.
 
+## Detección de audio no relacionado
+
+Si el audio no corresponde al texto original que el alumno debía leer (por ejemplo: grabó silencio prolongado, grabó otra cosa, o la transcripción no tiene ninguna relación con el texto original), marcá `texto_no_relacionado: true`. En ese caso, igualmente completá todos los demás campos con los valores que puedas obtener del audio.
+
 ## Formato de salida
 
 Respondé ÚNICAMENTE con un JSON válido:
@@ -81,7 +85,8 @@ Respondé ÚNICAMENTE con un JSON válido:
   ],
   "alertas_fluidez": ["no_respeta_pausas"],
   "calidad_audio_baja": false,
-  "notas_calidad": ""
+  "notas_calidad": "",
+  "texto_no_relacionado": false
 }
 ```
 
